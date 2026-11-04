@@ -11,17 +11,249 @@
         <link rel="stylesheet" href="css/L.Control.Locate.min.css">
         <link rel="stylesheet" href="css/qgis2web.css">
         <link rel="stylesheet" href="css/fontawesome-all.min.css">
-        <link rel="stylesheet" href="css/leaflet.photon.css">
         <style>
-        #map {
-            width: 503px;
-            height: 483px;
+        /* ---------- Theme ---------- */
+        :root {
+            --panel: #0b0b0b;
+            --surface: #151515;
+            --surface-2: #1d1d1d;
+            --line: #2b2b2b;
+            --gold: #d4af37;
+            --gold-soft: #e9cf7a;
+            --gold-dim: rgba(212, 175, 55, 0.18);
+            --text: #ece8dc;
+            --muted: #9c968a;
+            --sb-width: 320px;
+            --font: "Segoe UI", system-ui, -apple-system, Roboto, Helvetica, Arial, sans-serif;
+        }
+        html, body { height: 100%; margin: 0; }
+        body { background: var(--panel); font-family: var(--font); color: var(--text); }
+        #app { display: flex; height: 100vh; height: 100dvh; width: 100%; overflow: hidden; }
+
+        /* ---------- Sidebar ---------- */
+        #sidebar {
+            flex: 0 0 var(--sb-width);
+            width: var(--sb-width);
+            height: 100%;
+            background: var(--panel);
+            border-right: 1px solid var(--gold-dim);
+            display: flex;
+            flex-direction: column;
+            transition: margin-left .25s ease, transform .25s ease;
+            z-index: 1100;
+            box-sizing: border-box;
+        }
+        body.sb-collapsed #sidebar { margin-left: calc(-1 * var(--sb-width)); }
+        .sb-head {
+            display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+            padding: 18px 16px 14px;
+            border-bottom: 1px solid var(--gold-dim);
+        }
+        .sb-kicker { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+        .sb-head h1 { margin: 4px 0 0; font-size: 18px; line-height: 1.25; font-weight: 600; color: var(--gold); }
+        .icon-btn {
+            flex: none; width: 32px; height: 32px; border-radius: 6px;
+            border: 1px solid var(--line); background: var(--surface); color: var(--gold);
+            cursor: pointer; display: grid; place-items: center; font-size: 14px;
+        }
+        .icon-btn:hover { border-color: var(--gold); }
+        .sb-body { flex: 1; overflow-y: auto; padding: 6px 0 24px; scrollbar-color: #333 transparent; }
+
+        /* Collapsible sections */
+        .sb-section { border-bottom: 1px solid var(--line); }
+        .sb-section > summary {
+            list-style: none; cursor: pointer; user-select: none;
+            display: flex; align-items: center; gap: 10px;
+            padding: 13px 16px;
+            font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+            color: var(--gold);
+        }
+        .sb-section > summary::-webkit-details-marker { display: none; }
+        .sb-section > summary::after {
+            content: ""; margin-left: auto; width: 7px; height: 7px;
+            border-right: 2px solid var(--gold); border-bottom: 2px solid var(--gold);
+            transform: rotate(45deg); transition: transform .2s ease; margin-top: -4px;
+        }
+        .sb-section[open] > summary::after { transform: rotate(-135deg); margin-top: 3px; }
+        .sb-section > summary:hover { background: var(--surface); }
+        .sb-section > summary .fas { width: 16px; text-align: center; }
+        .sb-content { padding: 2px 16px 16px; }
+        #sidebar .fa, #sidebar .fas { color: inherit !important; }
+
+        /* Layer groups and rows */
+        .lyr-group + .lyr-group { margin-top: 14px; }
+        .lyr-group-head {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 6px 0; margin-bottom: 4px; border-bottom: 1px solid var(--line);
+        }
+        .lyr-group-title { font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gold-soft); }
+        .lyr { padding: 8px 0 6px; }
+        .lyr-row { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 13.5px; line-height: 1.3; }
+        .lyr-name { flex: 1; }
+        .lyr-opacity { display: flex; align-items: center; gap: 8px; margin: 6px 0 0 44px; font-size: 11px; color: var(--muted); }
+        .lyr-opacity input { flex: 1; }
+        .lyr-opacity output { width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+        .lyr.off .lyr-name { color: var(--muted); }
+        .lyr.off .lyr-opacity { opacity: .4; }
+
+        /* Gold toggle switch */
+        .switch { position: relative; flex: none; width: 34px; height: 18px; }
+        .switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+        .switch span {
+            position: absolute; inset: 0; border-radius: 999px;
+            background: #2e2e2e; border: 1px solid #3a3a3a; transition: background .15s, border-color .15s;
+            pointer-events: none;
+        }
+        .switch span::after {
+            content: ""; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%;
+            background: #8a8578; transition: transform .15s, background .15s;
+        }
+        .switch input:checked + span { background: var(--gold-dim); border-color: var(--gold); }
+        .switch input:checked + span::after { transform: translateX(16px); background: var(--gold); }
+        .switch input:focus-visible + span { outline: 2px solid var(--gold-soft); outline-offset: 2px; }
+        .switch.sm { width: 28px; height: 15px; }
+        .switch.sm span::after { width: 9px; height: 9px; }
+        .switch.sm input:checked + span::after { transform: translateX(13px); }
+
+        input[type=range] { accent-color: var(--gold); height: 14px; }
+
+        /* Basemaps */
+        .bm-option {
+            display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-bottom: 6px;
+            border: 1px solid var(--line); border-radius: 6px; background: var(--surface);
+            cursor: pointer; font-size: 13.5px;
+        }
+        .bm-option:hover { border-color: #4a4232; }
+        .bm-option input { accent-color: var(--gold); margin: 0; }
+        .bm-option.active { border-color: var(--gold); background: var(--surface-2); color: var(--gold-soft); }
+
+        /* Search, measure, buttons */
+        .field-row { display: flex; gap: 6px; }
+        .sb-input {
+            flex: 1; min-width: 0; padding: 8px 10px; border-radius: 6px;
+            border: 1px solid var(--line); background: var(--surface); color: var(--text);
+            font: inherit; font-size: 13.5px;
+        }
+        .sb-input:focus { outline: none; border-color: var(--gold); }
+        .sb-btn {
+            padding: 8px 12px; border-radius: 6px; border: 1px solid var(--gold);
+            background: transparent; color: var(--gold); font: inherit; font-size: 13px; font-weight: 600;
+            cursor: pointer;
+        }
+        .sb-btn:hover { background: var(--gold-dim); }
+        .sb-btn.solid { background: var(--gold); color: #111; }
+        .sb-btn.solid:hover { background: var(--gold-soft); }
+        .sb-btn.ghost { border-color: var(--line); color: var(--muted); }
+        .sb-btn.ghost:hover { color: var(--text); border-color: #555; background: transparent; }
+        .sb-btn.block { width: 100%; margin-top: 8px; }
+        .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; line-height: 1.45; }
+        .results { list-style: none; margin: 8px 0 0; padding: 0; max-height: 260px; overflow-y: auto; }
+        .results li button {
+            width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px;
+            padding: 7px 8px; border: 0; border-radius: 5px; background: transparent; color: var(--text);
+            font: inherit; font-size: 13px; cursor: pointer;
+        }
+        .results li button:hover { background: var(--surface-2); }
+        .results .kind { color: var(--gold); font-size: 11px; white-space: nowrap; }
+        .measure-readout {
+            margin-top: 10px; padding: 12px; border-radius: 6px; background: var(--surface); border: 1px solid var(--line);
+        }
+        .measure-readout .label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+        .measure-readout .value { font-size: 22px; font-weight: 600; color: var(--gold); font-variant-numeric: tabular-nums; }
+        .btn-row { display: flex; gap: 6px; }
+        .btn-row .sb-btn { flex: 1; }
+
+        /* Legend */
+        .lg-item { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+        .lg-item:last-child { border-bottom: 0; }
+        .lg-name { color: var(--gold-soft); font-weight: 600; margin-bottom: 4px; }
+        .lg-item table { border-collapse: collapse; }
+        .lg-item td { padding: 2px 8px 2px 0; vertical-align: middle; color: var(--text); }
+        .lg-item img { display: block; background: #f2efe6; border-radius: 3px; padding: 1px; }
+        .lg-swatch { display: flex; align-items: center; gap: 8px; }
+
+        /* ---------- Map ---------- */
+        #map { flex: 1; height: 100%; min-width: 0; }
+        #map.measuring { cursor: crosshair; }
+        #map .leaflet-bar a,
+        #map .leaflet-control-locate a {
+            background-color: var(--panel) !important; color: var(--gold) !important;
+            border-bottom: 1px solid var(--line);
+        }
+        #map .leaflet-bar a:hover { background-color: var(--surface-2) !important; }
+        #map .leaflet-bar .fa { color: var(--gold) !important; }
+        #map.leaflet-touch .leaflet-bar { border: 1px solid var(--gold-dim) !important; }
+        #map .leaflet-control-attribution { background: rgba(11,11,11,.8); color: #bdb7a8; }
+        #map .leaflet-control-attribution a { color: var(--gold-soft) !important; }
+        .sb-toggle-ctrl a { display: grid !important; place-items: center; font-size: 15px; cursor: pointer; }
+        body:not(.sb-collapsed) .sb-toggle-ctrl { display: none; }
+        .measure-tip { background: var(--panel) !important; color: var(--gold) !important; border: 1px solid var(--gold) !important; border-radius: 4px; padding: 2px 6px; font-size: 12px; }
+
+        /* ---------- Mobile: sidebar slides over the map ---------- */
+        @media (max-width: 768px) {
+            #sidebar {
+                position: fixed; top: 0; left: 0; bottom: 0;
+                width: min(86vw, var(--sb-width)); margin-left: 0 !important;
+                box-shadow: 8px 0 24px rgba(0,0,0,.5);
+            }
+            body.sb-collapsed #sidebar { transform: translateX(-105%); }
         }
         </style>
-        <title></title>
+        <title>Taita Taveta Water Map</title>
     </head>
     <body>
+        <div id="app">
+        <aside id="sidebar" aria-label="Map toolbox">
+            <header class="sb-head">
+                <div>
+                    <div class="sb-kicker">Taita Taveta County</div>
+                    <h1>Water &amp; Groundwater Map</h1>
+                </div>
+                <button class="icon-btn" id="sb-close" type="button" title="Hide toolbox" aria-label="Hide toolbox"><i class="fas fa-times"></i></button>
+            </header>
+            <div class="sb-body">
+                <details class="sb-section" open>
+                    <summary><i class="fas fa-list"></i>Layers</summary>
+                    <div class="sb-content" id="layer-list"></div>
+                </details>
+                <details class="sb-section" open>
+                    <summary><i class="fas fa-globe"></i>Basemaps</summary>
+                    <div class="sb-content" id="basemap-list"></div>
+                </details>
+                <details class="sb-section">
+                    <summary><i class="fas fa-search"></i>Search</summary>
+                    <div class="sb-content">
+                        <form class="field-row" id="search-form" autocomplete="off">
+                            <input class="sb-input" id="search-input" type="search" placeholder="Village, ward, river, dam…" aria-label="Search map features">
+                            <button class="sb-btn solid" type="submit">Go</button>
+                        </form>
+                        <ul class="results" id="search-results"></ul>
+                        <button class="sb-btn block" id="search-osm" type="button">Search places on OpenStreetMap</button>
+                        <p class="hint" id="search-hint">Type to search the map's own layers. Use the button to look up any place in Kenya.</p>
+                    </div>
+                </details>
+                <details class="sb-section">
+                    <summary><i class="fas fa-ruler"></i>Measure</summary>
+                    <div class="sb-content">
+                        <div class="btn-row">
+                            <button class="sb-btn solid" id="measure-toggle" type="button">Start measuring</button>
+                            <button class="sb-btn ghost" id="measure-clear" type="button"><i class="fas fa-trash"></i> Clear</button>
+                        </div>
+                        <div class="measure-readout">
+                            <div class="label">Distance</div>
+                            <div class="value" id="measure-value">0.00 km</div>
+                        </div>
+                        <p class="hint">Click points on the map to draw a line. Double-click or press Finish to stop.</p>
+                    </div>
+                </details>
+                <details class="sb-section">
+                    <summary><i class="fas fa-map"></i>Legend</summary>
+                    <div class="sb-content" id="legend"></div>
+                </details>
+            </div>
+        </aside>
         <div id="map">
+        </div>
         </div>
         <script src="js/qgis2web_expressions.js"></script>
         <script src="js/leaflet.js"></script>
@@ -35,7 +267,6 @@
         <script src="js/rbush.min.js"></script>
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
-        <script src="js/leaflet.photon.js"></script>
         <script src="data/geology_taita_0.js"></script>
         <script src="data/wards_2.js"></script>
         <script src="data/Drillingcandidatezonesranked_4.js"></script>
@@ -1219,92 +1450,323 @@
         });
         bounds_group.addLayer(layer_RiversandstreamsOSM_16);
         map.addLayer(layer_RiversandstreamsOSM_16);
-        const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
-        "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
-        var photonControl = L.control.photon({
-            url: url["Nominatim OSM"],
-            feedbackLabel: '',
-            position: 'topleft',
-            includePosition: true,
-            initial: true,
-            // resultsHandler: myHandler,
-        }).addTo(map);
-        photonControl._container.childNodes[0].style.borderRadius="10px"
-        // Create a variable to store the geoJSON data
-        var x = null;
-        // Create a variable to store the marker
-        var marker = null;
-        // Add an event listener to the Photon control to create a marker from the returned geoJSON data
-        var z = null;
-        photonControl.on('selected', function(e) {
-            console.log(photonControl.search.resultsContainer);
-            if (x != null) {
-                map.removeLayer(obj3.marker);
-                map.removeLayer(x);
+        // ================= Sidebar toolbox =================
+        function el(tag, attrs, children) {
+            var node = document.createElement(tag);
+            if (attrs) for (var k in attrs) {
+                if (k === 'text') node.textContent = attrs[k];
+                else if (k === 'html') node.innerHTML = attrs[k];
+                else if (k === 'class') node.className = attrs[k];
+                else node.setAttribute(k, attrs[k]);
             }
-            obj2.gcd = e.choice;
-            x = L.geoJSON(obj2.gcd).addTo(map);
-            var label = typeof obj2.gcd.properties.label === 'undefined' ? obj2.gcd.properties.display_name : obj2.gcd.properties.label;
-            obj3.marker = L.marker(x.getLayers()[0].getLatLng()).bindPopup(label).addTo(map);
-            map.setView(x.getLayers()[0].getLatLng(), 17);
-            z = typeof e.choice.properties.label === 'undefined'? e.choice.properties.display_name : e.choice.properties.label;
-            console.log(e);
-            e.target.input.value = z;
+            (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+            return node;
+        }
+        function img(src) { return '<img src="legend/' + src + '.png" alt="">'; }
+        function legendTable(rows) {
+            return '<table>' + rows.map(function (r) {
+                return '<tr><td>' + img(r[0]) + '</td><td>' + r[1] + '</td></tr>';
+            }).join('') + '</table>';
+        }
+
+        // Layer groups (same layers, grouping and order as the original layer tree)
+        var layerGroups = [
+            {name: 'Water sources', items: [
+                {name: 'Rivers and streams (OSM)', layer: layer_RiversandstreamsOSM_16, pane: 'pane_RiversandstreamsOSM_16',
+                    legend: legendTable([['RiversandstreamsOSM_16_River0', 'River'], ['RiversandstreamsOSM_16_Stream1', 'Stream'], ['RiversandstreamsOSM_16_Canaldrain2', 'Canal / drain'], ['RiversandstreamsOSM_16_Damweir3', 'Dam / weir']])},
+                {name: 'Lakes, ponds and dams (OSM)', layer: layer_LakespondsanddamsOSM_15, pane: 'pane_LakespondsanddamsOSM_15', icon: 'LakespondsanddamsOSM_15'},
+                {name: 'Rivers (HydroSHEDS)', layer: layer_RiversHydroSHEDS_14, pane: 'pane_RiversHydroSHEDS_14', icon: 'RiversHydroSHEDS_14'},
+                {name: 'Surface water 1984-2021 (% of time)', layer: layer_Surfacewater19842021oftime_13, pane: 'pane_Surfacewater19842021oftime_13'},
+                {name: 'Water points (OSM)', layer: layer_WaterpointsOSM_12, pane: 'pane_WaterpointsOSM_12',
+                    legend: legendTable([['WaterpointsOSM_12_Spring0', 'Spring'], ['WaterpointsOSM_12_Wellboreholenonemapped1', 'Well / borehole (none mapped)'], ['WaterpointsOSM_12_Waterpointtapnonemapped2', 'Water point / tap (none mapped)'], ['WaterpointsOSM_12_Storagetanktower3', 'Storage tank / tower'], ['WaterpointsOSM_12_Damweir4', 'Dam / weir']])}
+            ]},
+            {name: 'Groundwater - where to drill', items: [
+                {name: 'Groundwater potential', layer: layer_Groundwaterpotential_11, pane: 'pane_Groundwaterpotential_11'},
+                {name: 'Groundwater score (0-1)', layer: layer_Groundwaterscore01_10, pane: 'pane_Groundwaterscore01_10'}
+            ]},
+            {name: 'Water access', items: [
+                {name: 'Villages', layer: layer_Villages_9, pane: 'pane_Villages_9', icon: 'Villages_9'},
+                {name: 'Distance to nearest mapped water (km)', layer: layer_Distancetonearestmappedwaterkm_8, pane: 'pane_Distancetonearestmappedwaterkm_8'}
+            ]},
+            {name: 'Groundwater potential (where to drill)', items: [
+                {name: 'Drilling candidate zones (ranked)', layer: layer_Drillingcandidatezonesranked_4, pane: 'pane_Drillingcandidatezonesranked_4', icon: 'Drillingcandidatezonesranked_4'}
+            ]},
+            {name: 'Factors (0 = poor, 1 = good)', items: [
+                {name: 'Geology (20%)', layer: layer_geology20_3, pane: 'pane_geology20_3'}
+            ]},
+            {name: 'Reference layers', items: [
+                {name: 'Protected areas', layer: layer_protected_areas_7, pane: 'pane_protected_areas_7', icon: 'protected_areas_7'},
+                {name: 'Villages (admin)', layer: layer_villages_6, pane: 'pane_villages_6', icon: 'villages_6'},
+                {name: 'County boundary', layer: layer_county_boundary_5, pane: 'pane_county_boundary_5', icon: 'county_boundary_5'},
+                {name: 'Wards', layer: layer_wards_2, pane: 'pane_wards_2', icon: 'wards_2'},
+                {name: 'Prospectivity classes', layer: layer_prospectivity_classes_1, pane: 'pane_prospectivity_classes_1'},
+                {name: 'Geology (Taita)', layer: layer_geology_taita_0, pane: 'pane_geology_taita_0',
+                    legend: legendTable([['geology_taita_0_H2OH2O0', 'H2O [H2O]'], ['geology_taita_0_PCPC1', 'PC [PC]'], ['geology_taita_0_QuaternarycoveralluviumsoilsQ2', 'Quaternary cover - alluvium, soils [Q]'], ['geology_taita_0_QuaternarycoveralluviumsoilsQe3', 'Quaternary cover - alluvium, soils [Qe]'], ['geology_taita_0_QuaternaryvolcanicsKilimanjaroChyuluQv4', 'Quaternary volcanics (Kilimanjaro / Chyulu) [Qv]'], ['geology_taita_0_TertiarysedimentsTi5', 'Tertiary sediments [Ti]'], ['geology_taita_0_PrecambrianbasementMozambiqueBeltgemhostrockspCm6', 'Precambrian basement - Mozambique Belt (gem host rocks) [pCm]']])}
+            ]}
+        ];
+
+        // ---- Layers: toggles + opacity ----
+        var layerList = document.getElementById('layer-list');
+        function makeSwitch(checked, small, label) {
+            var input = el('input', {type: 'checkbox', 'aria-label': label});
+            input.checked = checked;
+            return {wrap: el('span', {class: 'switch' + (small ? ' sm' : '')}, [input, el('span')]), input: input};
+        }
+        function setLayerVisible(item, visible) {
+            if (visible) map.addLayer(item.layer); else map.removeLayer(item.layer);
+            item.input.checked = visible;
+            item.row.classList.toggle('off', !visible);
+        }
+        function syncGroupSwitch(group) {
+            group.input.checked = group.items.every(function (it) { return map.hasLayer(it.layer); });
+        }
+        layerGroups.forEach(function (group) {
+            var gSwitch = makeSwitch(true, true, 'Show all ' + group.name);
+            group.input = gSwitch.input;
+            var box = el('div', {class: 'lyr-group'}, [
+                el('div', {class: 'lyr-group-head'}, [el('span', {class: 'lyr-group-title', text: group.name}), gSwitch.wrap])
+            ]);
+            group.items.forEach(function (item) {
+                var sw = makeSwitch(map.hasLayer(item.layer), false, item.name);
+                item.input = sw.input;
+                var range = el('input', {type: 'range', min: '0', max: '100', value: '100', 'aria-label': item.name + ' opacity'});
+                var out = el('output', {text: '100%'});
+                range.addEventListener('input', function () {
+                    map.getPane(item.pane).style.opacity = range.value / 100;
+                    out.textContent = range.value + '%';
+                });
+                item.row = el('div', {class: 'lyr'}, [
+                    el('label', {class: 'lyr-row'}, [sw.wrap, el('span', {class: 'lyr-name', text: item.name})]),
+                    el('div', {class: 'lyr-opacity'}, [el('span', {text: 'Opacity'}), range, out])
+                ]);
+                sw.input.addEventListener('change', function () {
+                    setLayerVisible(item, sw.input.checked);
+                    syncGroupSwitch(group);
+                    renderLegend();
+                });
+                box.appendChild(item.row);
+            });
+            gSwitch.input.addEventListener('change', function () {
+                group.items.forEach(function (it) { setLayerVisible(it, gSwitch.input.checked); });
+                renderLegend();
+            });
+            syncGroupSwitch(group);
+            layerList.appendChild(box);
         });
-        var search = document.getElementsByClassName("leaflet-photon leaflet-control")[0];
-        search.classList.add("leaflet-control-search")
-        search.style.display = "flex";
-        search.style.backgroundColor="rgba(255,255,255,0.5)" 
 
-        // Create the new button element
-        var button = document.createElement("div");
-        button.id = "gcd-button-control";
-        button.className = "gcd-gl-btn fa fa-search search-button";
+        // ---- Basemaps ----
+        var basemaps = [
+            {name: 'OpenStreetMap', layer: L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'})},
+            {name: 'Satellite (Esri)', layer: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {maxZoom: 19, attribution: 'Imagery &copy; Esri'})},
+            {name: 'Topographic (OpenTopoMap)', layer: L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {maxZoom: 17, attribution: '&copy; OpenStreetMap contributors, SRTM | &copy; OpenTopoMap (CC-BY-SA)'})},
+            {name: 'Dark (CARTO)', layer: L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {maxZoom: 20, subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO'})},
+            {name: 'No basemap', layer: null}
+        ];
+        var basemapList = document.getElementById('basemap-list');
+        var activeBasemap = null;
+        function setBasemap(bm) {
+            if (activeBasemap && activeBasemap.layer) map.removeLayer(activeBasemap.layer);
+            activeBasemap = bm;
+            if (bm.layer) bm.layer.addTo(map);
+            basemaps.forEach(function (b) { b.row.classList.toggle('active', b === bm); b.radio.checked = b === bm; });
+        }
+        basemaps.forEach(function (bm) {
+            bm.radio = el('input', {type: 'radio', name: 'basemap'});
+            bm.row = el('label', {class: 'bm-option'}, [bm.radio, el('span', {text: bm.name})]);
+            bm.radio.addEventListener('change', function () { setBasemap(bm); });
+            basemapList.appendChild(bm.row);
+        });
+        setBasemap(basemaps[0]);
 
-        // Insert the button at the beginning of the search control
-        search.insertBefore(button, search.firstChild);
-        last = search.lastChild;
-        last.style.display = "none";
-        button.addEventListener("click", function (e) {
-            if (last.style.display === "none") {
-                last.style.display = "block";
-            } else {
-                last.style.display = "none";
+        // ---- Legend (shows layers that are switched on) ----
+        var legendBox = document.getElementById('legend');
+        function renderLegend() {
+            legendBox.innerHTML = '';
+            var shown = 0;
+            layerGroups.forEach(function (group) {
+                group.items.forEach(function (item) {
+                    if (!map.hasLayer(item.layer)) return;
+                    shown++;
+                    var body;
+                    if (item.legend) body = el('div', {html: item.legend});
+                    else if (item.icon) body = el('div', {class: 'lg-swatch', html: img(item.icon) + '<span>' + item.name + '</span>'});
+                    else body = el('div', {class: 'hint', text: 'Raster layer'});
+                    legendBox.appendChild(el('div', {class: 'lg-item'}, [
+                        item.legend || !item.icon ? el('div', {class: 'lg-name', text: item.name}) : null, body
+                    ]));
+                });
+            });
+            if (!shown) legendBox.appendChild(el('p', {class: 'hint', text: 'Turn on a layer to see its legend.'}));
+        }
+        renderLegend();
+
+        // ---- Sidebar open / close ----
+        var mobileQuery = window.matchMedia('(max-width: 768px)');
+        function setSidebar(open) {
+            document.body.classList.toggle('sb-collapsed', !open);
+            setTimeout(function () { map.invalidateSize(); }, 280);
+        }
+        var ToggleControl = L.Control.extend({
+            options: {position: 'topleft'},
+            onAdd: function () {
+                var div = L.DomUtil.create('div', 'leaflet-bar sb-toggle-ctrl');
+                var a = L.DomUtil.create('a', '', div);
+                a.href = '#'; a.title = 'Open toolbox'; a.setAttribute('role', 'button');
+                a.innerHTML = '<i class="fas fa-bars"></i>';
+                L.DomEvent.on(a, 'click', function (e) { L.DomEvent.preventDefault(e); setSidebar(true); });
+                L.DomEvent.disableClickPropagation(div);
+                return div;
             }
         });
-        var overlaysTree = [
-        {label: '<b>Water sources</b>',  selectAllCheckbox: true, children: [
-            {label: 'Rivers and streams (OSM)<br /><table><tr><td style="text-align: center;"><img src="legend/RiversandstreamsOSM_16_River0.png" /></td><td>River</td></tr><tr><td style="text-align: center;"><img src="legend/RiversandstreamsOSM_16_Stream1.png" /></td><td>Stream</td></tr><tr><td style="text-align: center;"><img src="legend/RiversandstreamsOSM_16_Canaldrain2.png" /></td><td>Canal / drain</td></tr><tr><td style="text-align: center;"><img src="legend/RiversandstreamsOSM_16_Damweir3.png" /></td><td>Dam / weir</td></tr></table>', layer: layer_RiversandstreamsOSM_16},
-            {label: '<img src="legend/LakespondsanddamsOSM_15.png" /> Lakes, ponds and dams (OSM)', layer: layer_LakespondsanddamsOSM_15},
-            {label: '<img src="legend/RiversHydroSHEDS_14.png" /> Rivers (HydroSHEDS)', layer: layer_RiversHydroSHEDS_14},
-            {label: "Surface water 1984-2021 (% of time)", layer: layer_Surfacewater19842021oftime_13},
-            {label: 'Water points (OSM)<br /><table><tr><td style="text-align: center;"><img src="legend/WaterpointsOSM_12_Spring0.png" /></td><td>Spring</td></tr><tr><td style="text-align: center;"><img src="legend/WaterpointsOSM_12_Wellboreholenonemapped1.png" /></td><td>Well / borehole (none mapped)</td></tr><tr><td style="text-align: center;"><img src="legend/WaterpointsOSM_12_Waterpointtapnonemapped2.png" /></td><td>Water point / tap (none mapped)</td></tr><tr><td style="text-align: center;"><img src="legend/WaterpointsOSM_12_Storagetanktower3.png" /></td><td>Storage tank / tower</td></tr><tr><td style="text-align: center;"><img src="legend/WaterpointsOSM_12_Damweir4.png" /></td><td>Dam / weir</td></tr></table>', layer: layer_WaterpointsOSM_12},]},
-        {label: '<b>Groundwater - where to drill</b>',  selectAllCheckbox: true, children: [
-            {label: "Groundwater potential", layer: layer_Groundwaterpotential_11},
-            {label: "Groundwater score (0-1)", layer: layer_Groundwaterscore01_10},]},
-        {label: '<b>Water access</b>',  selectAllCheckbox: true, children: [
-            {label: '<img src="legend/Villages_9.png" /> Villages', layer: layer_Villages_9},
-            {label: "Distance to nearest mapped water (km)", layer: layer_Distancetonearestmappedwaterkm_8},]},
-            {label: '<img src="legend/protected_areas_7.png" /> protected_areas', layer: layer_protected_areas_7},
-            {label: '<img src="legend/villages_6.png" /> villages', layer: layer_villages_6},
-            {label: '<img src="legend/county_boundary_5.png" /> county_boundary', layer: layer_county_boundary_5},
-        {label: '<b>Groundwater potential (where to drill)</b>',  selectAllCheckbox: true, children: [
-            {label: '<img src="legend/Drillingcandidatezonesranked_4.png" /> Drilling candidate zones (ranked)', layer: layer_Drillingcandidatezonesranked_4},]},
-        {label: '<b>Factors (0 = poor, 1 = good)</b>', collapsed: true, selectAllCheckbox: true, children: [
-            {label: "geology (20%)", layer: layer_geology20_3},]},
-            {label: '<img src="legend/wards_2.png" /> wards', layer: layer_wards_2},
-            {label: "prospectivity_classes", layer: layer_prospectivity_classes_1},
-            {label: 'geology_taita<br /><table><tr><td style="text-align: center;"><img src="legend/geology_taita_0_H2OH2O0.png" /></td><td>H2O  [H2O]</td></tr><tr><td style="text-align: center;"><img src="legend/geology_taita_0_PCPC1.png" /></td><td>PC  [PC]</td></tr><tr><td style="text-align: center;"><img src="legend/geology_taita_0_QuaternarycoveralluviumsoilsQ2.png" /></td><td>Quaternary cover - alluvium, soils  [Q]</td></tr><tr><td style="text-align: center;"><img src="legend/geology_taita_0_QuaternarycoveralluviumsoilsQe3.png" /></td><td>Quaternary cover - alluvium, soils  [Qe]</td></tr><tr><td style="text-align: center;"><img src="legend/geology_taita_0_QuaternaryvolcanicsKilimanjaroChyuluQv4.png" /></td><td>Quaternary volcanics (Kilimanjaro / Chyulu)  [Qv]</td></tr><tr><td style="text-align: center;"><img src="legend/geology_taita_0_TertiarysedimentsTi5.png" /></td><td>Tertiary sediments  [Ti]</td></tr><tr><td style="text-align: center;"><img src="legend/geology_taita_0_PrecambrianbasementMozambiqueBeltgemhostrockspCm6.png" /></td><td>Precambrian basement - Mozambique Belt (gem host rocks)  [pCm]</td></tr></table>', layer: layer_geology_taita_0},]
-        var lay = L.control.layers.tree(null, overlaysTree,{
-            //namedToggle: true,
-            //selectorBack: false,
-            //closedSymbol: '&#8862; &#x1f5c0;',
-            //openedSymbol: '&#8863; &#x1f5c1;',
-            //collapseAll: 'Collapse all',
-            //expandAll: 'Expand all',
-            collapsed: true,
+        var toggleCtrl = new ToggleControl().addTo(map);
+        var tlCorner = toggleCtrl.getContainer().parentNode;
+        tlCorner.insertBefore(toggleCtrl.getContainer(), tlCorner.firstChild);
+        document.getElementById('sb-close').addEventListener('click', function () { setSidebar(false); });
+        if (mobileQuery.matches) setSidebar(false);
+        function closeSidebarOnMobile() { if (mobileQuery.matches) setSidebar(false); }
+
+        // ---- Search ----
+        var searchIndex = [];
+        function indexLayer(item, prop, kind, textFn) {
+            var seen = {};
+            item.layer.eachLayer(function (l) {
+                var p = l.feature && l.feature.properties;
+                var text = textFn ? textFn(p) : (p && p[prop]);
+                if (text === null || text === undefined || text === '') return;
+                text = String(text);
+                if (seen[text.toLowerCase()]) return;
+                seen[text.toLowerCase()] = true;
+                searchIndex.push({text: text, kind: kind, feature: l, item: item});
+            });
+        }
+        function findItem(layer) {
+            var found = null;
+            layerGroups.forEach(function (g) { g.items.forEach(function (it) { if (it.layer === layer) found = it; }); });
+            return found;
+        }
+        indexLayer(findItem(layer_Villages_9), 'name', 'Village');
+        indexLayer(findItem(layer_villages_6), 'name', 'Village (admin)');
+        indexLayer(findItem(layer_wards_2), 'ward', 'Ward');
+        indexLayer(findItem(layer_RiversandstreamsOSM_16), 'name', 'River / stream');
+        indexLayer(findItem(layer_LakespondsanddamsOSM_15), 'name', 'Lake / dam');
+        indexLayer(findItem(layer_WaterpointsOSM_12), 'name', 'Water point');
+        indexLayer(findItem(layer_protected_areas_7), 'NAME', 'Protected area');
+        indexLayer(findItem(layer_Drillingcandidatezonesranked_4), null, 'Drilling zone', function (p) {
+            return p && p.rank !== null ? 'Rank ' + p.rank + (p.ward ? ' - ' + p.ward : '') : null;
         });
-        lay.addTo(map);
+
+        var searchInput = document.getElementById('search-input');
+        var searchResults = document.getElementById('search-results');
+        var searchHint = document.getElementById('search-hint');
+        var searchMarker = null;
+
+        function showResults(list, emptyText) {
+            searchResults.innerHTML = '';
+            list.forEach(function (r) {
+                var btn = el('button', {type: 'button'}, [el('span', {text: r.text}), el('span', {class: 'kind', text: r.kind})]);
+                btn.addEventListener('click', function () { r.go(); closeSidebarOnMobile(); });
+                searchResults.appendChild(el('li', null, [btn]));
+            });
+            searchHint.textContent = list.length ? '' : emptyText;
+        }
+        function goToFeature(r) {
+            if (!map.hasLayer(r.item.layer)) {
+                setLayerVisible(r.item, true);
+                layerGroups.forEach(syncGroupSwitch);
+                renderLegend();
+            }
+            var f = r.feature;
+            if (f.getLatLng) map.setView(f.getLatLng(), Math.max(map.getZoom(), 14));
+            else map.fitBounds(f.getBounds(), {maxZoom: 14});
+            f.openPopup(f.getLatLng ? f.getLatLng() : f.getBounds().getCenter());
+        }
+        function localSearch() {
+            var q = searchInput.value.trim().toLowerCase();
+            if (!q) { showResults([], "Type to search the map's own layers. Use the button to look up any place in Kenya."); return; }
+            var hits = searchIndex.filter(function (s) { return s.text.toLowerCase().indexOf(q) !== -1; });
+            hits.sort(function (a, b) {
+                return (b.text.toLowerCase().indexOf(q) === 0) - (a.text.toLowerCase().indexOf(q) === 0) || a.text.localeCompare(b.text);
+            });
+            showResults(hits.slice(0, 30).map(function (s) {
+                return {text: s.text, kind: s.kind, go: function () { goToFeature(s); }};
+            }), 'No matches on the map layers. Try OpenStreetMap.');
+        }
+        searchInput.addEventListener('input', localSearch);
+        document.getElementById('search-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            localSearch();
+            var first = searchResults.querySelector('button');
+            if (first) first.click();
+        });
+        document.getElementById('search-osm').addEventListener('click', function () {
+            var q = searchInput.value.trim();
+            if (!q) { searchInput.focus(); return; }
+            searchHint.textContent = 'Searching OpenStreetMap…';
+            fetch('https://nominatim.openstreetmap.org/search?format=geojson&countrycodes=ke&limit=8&q=' + encodeURIComponent(q))
+                .then(function (res) { return res.json(); })
+                .then(function (data) {
+                    showResults((data.features || []).map(function (f) {
+                        var name = f.properties.display_name;
+                        return {text: name, kind: 'OSM place', go: function () {
+                            var ll = L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]);
+                            if (searchMarker) map.removeLayer(searchMarker);
+                            searchMarker = L.marker(ll).bindPopup(name).addTo(map);
+                            map.setView(ll, 15);
+                            searchMarker.openPopup();
+                        }};
+                    }), 'No places found.');
+                })
+                .catch(function () { searchHint.textContent = 'Could not reach OpenStreetMap. Check your connection.'; });
+        });
+
+        // ---- Measure distance ----
+        map.createPane('pane_measure');
+        map.getPane('pane_measure').style.zIndex = 650;
+        var measuring = false;
+        var measurePts = [];
+        var measureLayer = L.layerGroup().addTo(map);
+        var measureLine = null;
+        var measureBtn = document.getElementById('measure-toggle');
+        var measureValue = document.getElementById('measure-value');
+        function measureTotal() {
+            var d = 0;
+            for (var k = 1; k < measurePts.length; k++) d += map.distance(measurePts[k - 1], measurePts[k]);
+            return d;
+        }
+        function updateMeasure() {
+            var d = measureTotal();
+            measureValue.textContent = d < 1000 ? Math.round(d) + ' m' : (d / 1000).toFixed(2) + ' km';
+            if (measureLine) measureLine.setLatLngs(measurePts);
+        }
+        function setMeasuring(on) {
+            measuring = on;
+            map.getContainer().classList.toggle('measuring', on);
+            measureBtn.textContent = on ? 'Finish' : 'Start measuring';
+            if (on) { map.doubleClickZoom.disable(); map.closePopup(); closeSidebarOnMobile(); }
+            else map.doubleClickZoom.enable();
+        }
+        function clearMeasure() {
+            measureLayer.clearLayers();
+            measurePts = [];
+            measureLine = null;
+            updateMeasure();
+        }
+        measureBtn.addEventListener('click', function () {
+            if (!measuring && measurePts.length) clearMeasure();
+            setMeasuring(!measuring);
+        });
+        document.getElementById('measure-clear').addEventListener('click', function () { clearMeasure(); setMeasuring(false); });
+        map.on('click', function (e) {
+            if (!measuring) return;
+            var last = measurePts[measurePts.length - 1];
+            if (last && last.equals(e.latlng)) return;
+            measurePts.push(e.latlng);
+            if (!measureLine) measureLine = L.polyline([], {pane: 'pane_measure', color: '#d4af37', weight: 3, dashArray: '6,6', interactive: false}).addTo(measureLayer);
+            L.circleMarker(e.latlng, {pane: 'pane_measure', radius: 4, color: '#0b0b0b', weight: 2, fillColor: '#d4af37', fillOpacity: 1, interactive: false}).addTo(measureLayer);
+            updateMeasure();
+        });
+        map.on('dblclick', function () { if (measuring) setMeasuring(false); });
+        map.on('popupopen', function () { if (measuring) map.closePopup(); });
         setBounds();
         var i = 0;
         layer_wards_2.eachLayer(function(layer) {
