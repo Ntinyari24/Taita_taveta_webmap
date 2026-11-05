@@ -204,6 +204,14 @@
         #map .leaflet-control-attribution a { color: var(--gold-soft) !important; }
         .sb-toggle-ctrl a { display: grid !important; place-items: center; font-size: 15px; cursor: pointer; }
         body:not(.sb-collapsed) .sb-toggle-ctrl { display: none; }
+        .coord-pop { display: flex; flex-direction: column; gap: 4px; min-width: 190px; }
+        .coord-pop .coord-dec { font-weight: 600; font-size: 14px; font-variant-numeric: tabular-nums; color: #111; }
+        .coord-pop .coord-dms { font-size: 12px; color: #555; }
+        .coord-pop .coord-copy {
+            margin-top: 6px; align-self: flex-start; padding: 6px 10px; border-radius: 6px; cursor: pointer;
+            border: 1px solid var(--gold); background: var(--panel); color: var(--gold); font: inherit; font-size: 12px; font-weight: 600;
+        }
+        .coord-pop .coord-copy:hover { background: var(--surface-2); }
         .measure-tip { background: var(--panel) !important; color: var(--gold) !important; border: 1px solid var(--gold) !important; border-radius: 4px; padding: 2px 6px; font-size: 12px; }
 
         /* ---------- Mobile: sidebar slides over the map ---------- */
@@ -290,6 +298,7 @@
         <script src="js/rbush.min.js"></script>
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
+        <script src="js/coords.js"></script>
         <script src="js/tailDT.js"></script>
 <script src="js/nouislider.min.js"></script>
 <script src="js/wNumb.js"></script>
@@ -1853,32 +1862,91 @@
                 return {text: s.text, kind: s.kind, go: function () { goToFeature(s); }};
             }), 'No matches on the map layers. Try OpenStreetMap.');
         }
-        searchInput.addEventListener('input', localSearch);
-        document.getElementById('search-form').addEventListener('submit', function (e) {
-            e.preventDefault();
-            localSearch();
-            var first = searchResults.querySelector('button');
-            if (first) first.click();
-        });
-        document.getElementById('search-osm').addEventListener('click', function () {
-            var q = searchInput.value.trim();
-            if (!q) { searchInput.focus(); return; }
+        var SEARCH_HELP = 'Enter coordinates like -3.639636, 38.618564 or a place name';
+        function clearSearchMarker() {
+            if (searchMarker) { map.removeLayer(searchMarker); searchMarker = null; }
+        }
+        function copyText(text, btn) {
+            function done() { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy coordinates'; }, 1500); }
+            function fallback() {
+                var ta = el('textarea');
+                ta.value = text;
+                document.body.appendChild(ta);
+                ta.select();
+                try { document.execCommand('copy'); done(); } catch (err) {}
+                document.body.removeChild(ta);
+            }
+            if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+            else fallback();
+        }
+        // Exact point for typed coordinates: no place-name lookup
+        function showCoordinates(lat, lon) {
+            clearSearchMarker();
+            var dec = lat.toFixed(6) + ', ' + lon.toFixed(6);
+            var btn = el('button', {type: 'button', class: 'coord-copy', text: 'Copy coordinates'});
+            btn.addEventListener('click', function () { copyText(dec, btn); });
+            var box = el('div', {class: 'coord-pop'}, [
+                el('div', {class: 'coord-dec', text: dec}),
+                el('div', {class: 'coord-dms', text: formatDMS(lat, lon)}),
+                btn
+            ]);
+            var ll = L.latLng(lat, lon);
+            searchMarker = L.marker(ll).bindPopup(box).addTo(map);
+            map.setView(ll, 16);
+            searchMarker.openPopup();
+            showResults([], '');
+            closeSidebarOnMobile();
+        }
+        // Returns true when the text was coordinates (valid or not) and has been handled
+        function handleCoordinates(q) {
+            var c = parseCoordinates(q);
+            if (!c) return false;
+            if (c.ok) showCoordinates(c.lat, c.lon);
+            else showResults([], SEARCH_HELP);
+            return true;
+        }
+        function placeSearch(q, goToFirst) {
             searchHint.textContent = 'Searching OpenStreetMap…';
             fetch('https://nominatim.openstreetmap.org/search?format=geojson&countrycodes=ke&limit=8&q=' + encodeURIComponent(q))
                 .then(function (res) { return res.json(); })
                 .then(function (data) {
-                    showResults((data.features || []).map(function (f) {
+                    var list = (data.features || []).map(function (f) {
                         var name = f.properties.display_name;
                         return {text: name, kind: 'OSM place', go: function () {
                             var ll = L.latLng(f.geometry.coordinates[1], f.geometry.coordinates[0]);
-                            if (searchMarker) map.removeLayer(searchMarker);
+                            clearSearchMarker();
                             searchMarker = L.marker(ll).bindPopup(name).addTo(map);
                             map.setView(ll, 15);
                             searchMarker.openPopup();
                         }};
-                    }), 'No places found.');
+                    });
+                    showResults(list, goToFirst ? SEARCH_HELP : 'No places found.');
+                    if (goToFirst && list.length) list[0].go();
                 })
                 .catch(function () { searchHint.textContent = 'Could not reach OpenStreetMap. Check your connection.'; });
+        }
+        searchInput.addEventListener('input', function () {
+            var c = parseCoordinates(searchInput.value);
+            if (c) showResults([], c.ok ? 'Press Go to drop a pin at these coordinates.' : SEARCH_HELP);
+            else localSearch();
+        });
+        document.getElementById('search-form').addEventListener('submit', function (e) {
+            e.preventDefault();
+            var q = searchInput.value.trim();
+            clearSearchMarker();
+            if (!q) { showResults([], SEARCH_HELP); return; }
+            if (handleCoordinates(q)) return;
+            localSearch();
+            var first = searchResults.querySelector('button');
+            if (first) first.click();
+            else placeSearch(q, true);
+        });
+        document.getElementById('search-osm').addEventListener('click', function () {
+            var q = searchInput.value.trim();
+            if (!q) { searchInput.focus(); return; }
+            clearSearchMarker();
+            if (handleCoordinates(q)) return;
+            placeSearch(q, false);
         });
 
         // ---- Measure distance ----
