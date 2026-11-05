@@ -757,7 +757,7 @@ function fnc_project_color(values, context) {
 
 
 
-function exp_label_Drillingcandidatezonesranked_4_eval_expression(context) {
+function exp_label_Drillingcandidatezonesranked_19_eval_expression(context) {
     // '#' || rank
 
     var feature = context.feature;
@@ -770,7 +770,33 @@ function exp_label_Drillingcandidatezonesranked_4_eval_expression(context) {
 }
 
 
-function exp_label_Drillingcandidatezonesranked_4_eval_expression(context) {
+function exp_label_Drillingcandidatezonesranked_26_eval_expression(context) {
+    // '#' || rank
+
+    var feature = context.feature;
+    
+    if (feature.properties) {
+        return ('#' + feature.properties['rank'] );
+    } else {
+        return ('#' + feature['rank'] );
+    }
+}
+
+
+function exp_label_Drillingcandidatezonesranked_19_eval_expression(context) {
+    // '#' || rank
+
+    var feature = context.feature;
+    
+    if (feature.properties) {
+        return ('#' + feature.properties['rank'] );
+    } else {
+        return ('#' + feature['rank'] );
+    }
+}
+
+
+function exp_label_Drillingcandidatezonesranked_26_eval_expression(context) {
     // '#' || rank
 
     var feature = context.feature;
