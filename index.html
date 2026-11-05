@@ -10,6 +10,7 @@
         <link rel="stylesheet" href="css/L.Control.Layers.Tree.css">
         <link rel="stylesheet" href="css/qgis2web.css">
         <link rel="stylesheet" href="css/fontawesome-all.min.css">
+<link rel="stylesheet" href="css/nouislider.min.css">
         <style>
         /* ---------- Theme ---------- */
         :root {
@@ -171,6 +172,23 @@
         .lg-item img { display: block; background: #f2efe6; border-radius: 3px; padding: 1px; }
         .lg-swatch { display: flex; align-items: center; gap: 8px; }
 
+
+        /* Filter (moved into the sidebar) */
+        #menu .filterselect { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+        #menu .filterselect select {
+            order: 2; width: 100%; padding: 4px; border-radius: 6px;
+            border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; font-size: 13px;
+        }
+        #menu .filterselect select:focus { outline: none; border-color: var(--gold); }
+        #menu .filterselect option { padding: 3px 6px; }
+        #menu .filterselect option:checked { background: var(--gold) linear-gradient(var(--gold), var(--gold)); color: #111; }
+        #menu .filterlabel { order: 1; font-size: 11px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--gold-soft); }
+        #menu .filterlabel + .filterlabel {
+            order: 3; align-self: flex-start; cursor: pointer; text-transform: none; letter-spacing: 0;
+            padding: 6px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--muted); font-weight: 600; font-size: 12px;
+        }
+        #menu .filterlabel + .filterlabel:hover { color: var(--text); border-color: #555; }
+
         /* ---------- Map ---------- */
         #map { flex: 1; height: 100%; min-width: 0; }
         #map.measuring { cursor: crosshair; }
@@ -214,6 +232,13 @@
                 <details class="sb-section" open>
                     <summary><i class="fas fa-list"></i>Layers</summary>
                     <div class="sb-content" id="layer-list"></div>
+                </details>
+                <details class="sb-section">
+                    <summary><i class="fas fa-filter"></i>Filter</summary>
+                    <div class="sb-content">
+                        <p class="hint">Show only protected areas in the selected IUCN categories. Ctrl/Cmd-click to pick several.</p>
+                        <div id="menu"></div>
+                    </div>
                 </details>
                 <details class="sb-section" open>
                     <summary><i class="fas fa-globe"></i>Basemaps</summary>
@@ -265,23 +290,26 @@
         <script src="js/rbush.min.js"></script>
         <script src="js/labelgun.min.js"></script>
         <script src="js/labels.js"></script>
+        <script src="js/tailDT.js"></script>
+<script src="js/nouislider.min.js"></script>
+<script src="js/wNumb.js"></script>
         <script src="data/geology_kenya_1.js"></script>
-        <script src="data/protected_areas_3.js"></script>
-        <script src="data/kenya_boundary_4.js"></script>
-        <script src="data/counties_5.js"></script>
-        <script src="data/Otherunclassified1_6.js"></script>
-        <script src="data/Othergarnetrhodolitealmandinespessartinehessonite4_7.js"></script>
-        <script src="data/Iolitecordierite1_8.js"></script>
-        <script src="data/Quartzamethystcitrine1_9.js"></script>
-        <script src="data/Berylaquamarineemeraldheliodormorganite2_10.js"></script>
-        <script src="data/Tourmaline9_11.js"></script>
-        <script src="data/Sapphireallcoloursunspecifiedcorundum8_12.js"></script>
-        <script src="data/Ruby7_13.js"></script>
-        <script src="data/Tsavoritegreengrossulargarnet8_14.js"></script>
+        <script src="data/protected_areas_5.js"></script>
+        <script src="data/kenya_boundary_6.js"></script>
+        <script src="data/counties_7.js"></script>
+        <script src="data/Otherunclassified1_8.js"></script>
+        <script src="data/Othergarnetrhodolitealmandinespessartinehessonite4_9.js"></script>
+        <script src="data/Iolitecordierite1_10.js"></script>
+        <script src="data/Quartzamethystcitrine1_11.js"></script>
+        <script src="data/Berylaquamarineemeraldheliodormorganite2_12.js"></script>
+        <script src="data/Tourmaline9_13.js"></script>
+        <script src="data/Sapphireallcoloursunspecifiedcorundum8_14.js"></script>
+        <script src="data/Ruby7_15.js"></script>
+        <script src="data/Tsavoritegreengrossulargarnet8_16.js"></script>
         <script>
         var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
-        }).fitBounds([[-8.640855604585214,2.706999478778114],[24.696484297967913,87.84421632448114]]);
+        }).fitBounds([[-4.2147351622102684,33.2414563687821],[4.122510710424266,53.93967757792253]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
@@ -373,31 +401,6 @@
         bounds_group.addLayer(layer_hillshade_0);
         map.addLayer(layer_hillshade_0);
         function pop_geology_kenya_1(feature, layer) {
-            var popupContent = '<table>\
-                    <tr>\
-                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2">' + (feature.properties['AREA'] !== null ? autolinker.link(String(feature.properties['AREA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2">' + (feature.properties['PERIMETER'] !== null ? autolinker.link(String(feature.properties['PERIMETER']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2">' + (feature.properties['GEO2_7G_'] !== null ? autolinker.link(String(feature.properties['GEO2_7G_']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2">' + (feature.properties['GEO2_7G_ID'] !== null ? autolinker.link(String(feature.properties['GEO2_7G_ID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                    <tr>\
-                        <td colspan="2">' + (feature.properties['GLG'] !== null ? autolinker.link(String(feature.properties['GLG']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
-                    </tr>\
-                </table>';
-            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
-			layer.on('popupopen', function(e) {
-				addClassToPopupIfMedia(content, e.popup);
-			});
-			layer.bindPopup(content, { maxHeight: 400 });
         }
 
         function style_geology_kenya_1_0(feature) {
@@ -718,16 +721,34 @@
         });
         bounds_group.addLayer(layer_geology_kenya_1);
         map.addLayer(layer_geology_kenya_1);
-        map.createPane('pane_prospectivity_classes_2');
-        map.getPane('pane_prospectivity_classes_2').style.zIndex = 402;
-        var img_prospectivity_classes_2 = 'data/prospectivity_classes_2.png';
-        var img_bounds_prospectivity_classes_2 = [[-4.731633906216855,33.88508761475871],[4.641166896910713,41.92031444313875]];
-        var layer_prospectivity_classes_2 = new L.imageOverlay(img_prospectivity_classes_2,
-                                              img_bounds_prospectivity_classes_2,
-                                              {pane: 'pane_prospectivity_classes_2'});
-        bounds_group.addLayer(layer_prospectivity_classes_2);
-        map.addLayer(layer_prospectivity_classes_2);
-        function pop_protected_areas_3(feature, layer) {
+        map.createPane('pane_ev_lithology_2');
+        map.getPane('pane_ev_lithology_2').style.zIndex = 402;
+        var img_ev_lithology_2 = 'data/ev_lithology_2.png';
+        var img_bounds_ev_lithology_2 = [[-4.731633906216855,33.88508761475871],[4.641166896910713,41.92031444313875]];
+        var layer_ev_lithology_2 = new L.imageOverlay(img_ev_lithology_2,
+                                              img_bounds_ev_lithology_2,
+                                              {pane: 'pane_ev_lithology_2'});
+        bounds_group.addLayer(layer_ev_lithology_2);
+        map.addLayer(layer_ev_lithology_2);
+        map.createPane('pane_prospectivity_3');
+        map.getPane('pane_prospectivity_3').style.zIndex = 403;
+        var img_prospectivity_3 = 'data/prospectivity_3.png';
+        var img_bounds_prospectivity_3 = [[-4.731633906216855,33.88508761475871],[4.641166896910713,41.92031444313875]];
+        var layer_prospectivity_3 = new L.imageOverlay(img_prospectivity_3,
+                                              img_bounds_prospectivity_3,
+                                              {pane: 'pane_prospectivity_3'});
+        bounds_group.addLayer(layer_prospectivity_3);
+        map.addLayer(layer_prospectivity_3);
+        map.createPane('pane_prospectivity_classes_4');
+        map.getPane('pane_prospectivity_classes_4').style.zIndex = 404;
+        var img_prospectivity_classes_4 = 'data/prospectivity_classes_4.png';
+        var img_bounds_prospectivity_classes_4 = [[-4.731633906216855,33.88508761475871],[4.641166896910713,41.92031444313875]];
+        var layer_prospectivity_classes_4 = new L.imageOverlay(img_prospectivity_classes_4,
+                                              img_bounds_prospectivity_classes_4,
+                                              {pane: 'pane_prospectivity_classes_4'});
+        bounds_group.addLayer(layer_prospectivity_classes_4);
+        map.addLayer(layer_prospectivity_classes_4);
+        function pop_protected_areas_5(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -752,9 +773,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_protected_areas_3_0() {
+        function style_protected_areas_5_0() {
             return {
-                pane: 'pane_protected_areas_3',
+                pane: 'pane_protected_areas_5',
                 opacity: 1,
                 color: 'rgba(110,70,30,1.0)',
                 dashArray: '',
@@ -767,21 +788,21 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_protected_areas_3');
-        map.getPane('pane_protected_areas_3').style.zIndex = 403;
-        map.getPane('pane_protected_areas_3').style['mix-blend-mode'] = 'normal';
-        var layer_protected_areas_3 = new L.geoJson(json_protected_areas_3, {
+        map.createPane('pane_protected_areas_5');
+        map.getPane('pane_protected_areas_5').style.zIndex = 405;
+        map.getPane('pane_protected_areas_5').style['mix-blend-mode'] = 'normal';
+        var layer_protected_areas_5 = new L.geoJson(json_protected_areas_5, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_protected_areas_3',
-            layerName: 'layer_protected_areas_3',
-            pane: 'pane_protected_areas_3',
-            onEachFeature: pop_protected_areas_3,
-            style: style_protected_areas_3_0,
+            dataVar: 'json_protected_areas_5',
+            layerName: 'layer_protected_areas_5',
+            pane: 'pane_protected_areas_5',
+            onEachFeature: pop_protected_areas_5,
+            style: style_protected_areas_5_0,
         });
-        bounds_group.addLayer(layer_protected_areas_3);
-        map.addLayer(layer_protected_areas_3);
-        function pop_kenya_boundary_4(feature, layer) {
+        bounds_group.addLayer(layer_protected_areas_5);
+        map.addLayer(layer_protected_areas_5);
+        function pop_kenya_boundary_6(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -800,9 +821,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_kenya_boundary_4_0() {
+        function style_kenya_boundary_6_0() {
             return {
-                pane: 'pane_kenya_boundary_4',
+                pane: 'pane_kenya_boundary_6',
                 opacity: 1,
                 color: 'rgba(20,20,20,1.0)',
                 dashArray: '',
@@ -813,21 +834,21 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_kenya_boundary_4');
-        map.getPane('pane_kenya_boundary_4').style.zIndex = 404;
-        map.getPane('pane_kenya_boundary_4').style['mix-blend-mode'] = 'normal';
-        var layer_kenya_boundary_4 = new L.geoJson(json_kenya_boundary_4, {
+        map.createPane('pane_kenya_boundary_6');
+        map.getPane('pane_kenya_boundary_6').style.zIndex = 406;
+        map.getPane('pane_kenya_boundary_6').style['mix-blend-mode'] = 'normal';
+        var layer_kenya_boundary_6 = new L.geoJson(json_kenya_boundary_6, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_kenya_boundary_4',
-            layerName: 'layer_kenya_boundary_4',
-            pane: 'pane_kenya_boundary_4',
-            onEachFeature: pop_kenya_boundary_4,
-            style: style_kenya_boundary_4_0,
+            dataVar: 'json_kenya_boundary_6',
+            layerName: 'layer_kenya_boundary_6',
+            pane: 'pane_kenya_boundary_6',
+            onEachFeature: pop_kenya_boundary_6,
+            style: style_kenya_boundary_6_0,
         });
-        bounds_group.addLayer(layer_kenya_boundary_4);
-        map.addLayer(layer_kenya_boundary_4);
-        function pop_counties_5(feature, layer) {
+        bounds_group.addLayer(layer_kenya_boundary_6);
+        map.addLayer(layer_kenya_boundary_6);
+        function pop_counties_7(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -879,9 +900,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_counties_5_0() {
+        function style_counties_7_0() {
             return {
-                pane: 'pane_counties_5',
+                pane: 'pane_counties_7',
                 opacity: 1,
                 color: 'rgba(70,70,70,1.0)',
                 dashArray: '',
@@ -894,21 +915,21 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_counties_5');
-        map.getPane('pane_counties_5').style.zIndex = 405;
-        map.getPane('pane_counties_5').style['mix-blend-mode'] = 'normal';
-        var layer_counties_5 = new L.geoJson(json_counties_5, {
+        map.createPane('pane_counties_7');
+        map.getPane('pane_counties_7').style.zIndex = 407;
+        map.getPane('pane_counties_7').style['mix-blend-mode'] = 'normal';
+        var layer_counties_7 = new L.geoJson(json_counties_7, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_counties_5',
-            layerName: 'layer_counties_5',
-            pane: 'pane_counties_5',
-            onEachFeature: pop_counties_5,
-            style: style_counties_5_0,
+            dataVar: 'json_counties_7',
+            layerName: 'layer_counties_7',
+            pane: 'pane_counties_7',
+            onEachFeature: pop_counties_7,
+            style: style_counties_7_0,
         });
-        bounds_group.addLayer(layer_counties_5);
-        map.addLayer(layer_counties_5);
-        function pop_Otherunclassified1_6(feature, layer) {
+        bounds_group.addLayer(layer_counties_7);
+        map.addLayer(layer_counties_7);
+        function pop_Otherunclassified1_8(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -945,9 +966,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Otherunclassified1_6_0() {
+        function style_Otherunclassified1_8_0() {
             return {
-                pane: 'pane_Otherunclassified1_6',
+                pane: 'pane_Otherunclassified1_8',
                 radius: 8.4,
                 opacity: 1,
                 color: 'rgba(0,0,0,1.0)',
@@ -961,27 +982,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Otherunclassified1_6');
-        map.getPane('pane_Otherunclassified1_6').style.zIndex = 406;
-        map.getPane('pane_Otherunclassified1_6').style['mix-blend-mode'] = 'normal';
-        var layer_Otherunclassified1_6 = new L.geoJson(json_Otherunclassified1_6, {
+        map.createPane('pane_Otherunclassified1_8');
+        map.getPane('pane_Otherunclassified1_8').style.zIndex = 408;
+        map.getPane('pane_Otherunclassified1_8').style['mix-blend-mode'] = 'normal';
+        var layer_Otherunclassified1_8 = new L.geoJson(json_Otherunclassified1_8, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Otherunclassified1_6',
-            layerName: 'layer_Otherunclassified1_6',
-            pane: 'pane_Otherunclassified1_6',
-            onEachFeature: pop_Otherunclassified1_6,
+            dataVar: 'json_Otherunclassified1_8',
+            layerName: 'layer_Otherunclassified1_8',
+            pane: 'pane_Otherunclassified1_8',
+            onEachFeature: pop_Otherunclassified1_8,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.circleMarker(latlng, style_Otherunclassified1_6_0(feature));
+                return L.circleMarker(latlng, style_Otherunclassified1_8_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Otherunclassified1_6);
-        map.addLayer(layer_Otherunclassified1_6);
-        function pop_Othergarnetrhodolitealmandinespessartinehessonite4_7(feature, layer) {
+        bounds_group.addLayer(layer_Otherunclassified1_8);
+        map.addLayer(layer_Otherunclassified1_8);
+        function pop_Othergarnetrhodolitealmandinespessartinehessonite4_9(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1018,9 +1039,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Othergarnetrhodolitealmandinespessartinehessonite4_7_0() {
+        function style_Othergarnetrhodolitealmandinespessartinehessonite4_9_0() {
             return {
-                pane: 'pane_Othergarnetrhodolitealmandinespessartinehessonite4_7',
+                pane: 'pane_Othergarnetrhodolitealmandinespessartinehessonite4_9',
                 radius: 8.4,
                 opacity: 1,
                 color: 'rgba(0,0,0,1.0)',
@@ -1034,27 +1055,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Othergarnetrhodolitealmandinespessartinehessonite4_7');
-        map.getPane('pane_Othergarnetrhodolitealmandinespessartinehessonite4_7').style.zIndex = 407;
-        map.getPane('pane_Othergarnetrhodolitealmandinespessartinehessonite4_7').style['mix-blend-mode'] = 'normal';
-        var layer_Othergarnetrhodolitealmandinespessartinehessonite4_7 = new L.geoJson(json_Othergarnetrhodolitealmandinespessartinehessonite4_7, {
+        map.createPane('pane_Othergarnetrhodolitealmandinespessartinehessonite4_9');
+        map.getPane('pane_Othergarnetrhodolitealmandinespessartinehessonite4_9').style.zIndex = 409;
+        map.getPane('pane_Othergarnetrhodolitealmandinespessartinehessonite4_9').style['mix-blend-mode'] = 'normal';
+        var layer_Othergarnetrhodolitealmandinespessartinehessonite4_9 = new L.geoJson(json_Othergarnetrhodolitealmandinespessartinehessonite4_9, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Othergarnetrhodolitealmandinespessartinehessonite4_7',
-            layerName: 'layer_Othergarnetrhodolitealmandinespessartinehessonite4_7',
-            pane: 'pane_Othergarnetrhodolitealmandinespessartinehessonite4_7',
-            onEachFeature: pop_Othergarnetrhodolitealmandinespessartinehessonite4_7,
+            dataVar: 'json_Othergarnetrhodolitealmandinespessartinehessonite4_9',
+            layerName: 'layer_Othergarnetrhodolitealmandinespessartinehessonite4_9',
+            pane: 'pane_Othergarnetrhodolitealmandinespessartinehessonite4_9',
+            onEachFeature: pop_Othergarnetrhodolitealmandinespessartinehessonite4_9,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Othergarnetrhodolitealmandinespessartinehessonite4_7_0(feature));
+                return L.shapeMarker(latlng, style_Othergarnetrhodolitealmandinespessartinehessonite4_9_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Othergarnetrhodolitealmandinespessartinehessonite4_7);
-        map.addLayer(layer_Othergarnetrhodolitealmandinespessartinehessonite4_7);
-        function pop_Iolitecordierite1_8(feature, layer) {
+        bounds_group.addLayer(layer_Othergarnetrhodolitealmandinespessartinehessonite4_9);
+        map.addLayer(layer_Othergarnetrhodolitealmandinespessartinehessonite4_9);
+        function pop_Iolitecordierite1_10(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1091,9 +1112,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Iolitecordierite1_8_0() {
+        function style_Iolitecordierite1_10_0() {
             return {
-                pane: 'pane_Iolitecordierite1_8',
+                pane: 'pane_Iolitecordierite1_10',
                 radius: 8.4,
                 opacity: 1,
                 color: 'rgba(0,0,0,1.0)',
@@ -1107,27 +1128,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Iolitecordierite1_8');
-        map.getPane('pane_Iolitecordierite1_8').style.zIndex = 408;
-        map.getPane('pane_Iolitecordierite1_8').style['mix-blend-mode'] = 'normal';
-        var layer_Iolitecordierite1_8 = new L.geoJson(json_Iolitecordierite1_8, {
+        map.createPane('pane_Iolitecordierite1_10');
+        map.getPane('pane_Iolitecordierite1_10').style.zIndex = 410;
+        map.getPane('pane_Iolitecordierite1_10').style['mix-blend-mode'] = 'normal';
+        var layer_Iolitecordierite1_10 = new L.geoJson(json_Iolitecordierite1_10, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Iolitecordierite1_8',
-            layerName: 'layer_Iolitecordierite1_8',
-            pane: 'pane_Iolitecordierite1_8',
-            onEachFeature: pop_Iolitecordierite1_8,
+            dataVar: 'json_Iolitecordierite1_10',
+            layerName: 'layer_Iolitecordierite1_10',
+            pane: 'pane_Iolitecordierite1_10',
+            onEachFeature: pop_Iolitecordierite1_10,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Iolitecordierite1_8_0(feature));
+                return L.shapeMarker(latlng, style_Iolitecordierite1_10_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Iolitecordierite1_8);
-        map.addLayer(layer_Iolitecordierite1_8);
-        function pop_Quartzamethystcitrine1_9(feature, layer) {
+        bounds_group.addLayer(layer_Iolitecordierite1_10);
+        map.addLayer(layer_Iolitecordierite1_10);
+        function pop_Quartzamethystcitrine1_11(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1164,9 +1185,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Quartzamethystcitrine1_9_0() {
+        function style_Quartzamethystcitrine1_11_0() {
             return {
-                pane: 'pane_Quartzamethystcitrine1_9',
+                pane: 'pane_Quartzamethystcitrine1_11',
                 shape: 'square',
                 radius: 8.4,
                 opacity: 1,
@@ -1181,27 +1202,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Quartzamethystcitrine1_9');
-        map.getPane('pane_Quartzamethystcitrine1_9').style.zIndex = 409;
-        map.getPane('pane_Quartzamethystcitrine1_9').style['mix-blend-mode'] = 'normal';
-        var layer_Quartzamethystcitrine1_9 = new L.geoJson(json_Quartzamethystcitrine1_9, {
+        map.createPane('pane_Quartzamethystcitrine1_11');
+        map.getPane('pane_Quartzamethystcitrine1_11').style.zIndex = 411;
+        map.getPane('pane_Quartzamethystcitrine1_11').style['mix-blend-mode'] = 'normal';
+        var layer_Quartzamethystcitrine1_11 = new L.geoJson(json_Quartzamethystcitrine1_11, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Quartzamethystcitrine1_9',
-            layerName: 'layer_Quartzamethystcitrine1_9',
-            pane: 'pane_Quartzamethystcitrine1_9',
-            onEachFeature: pop_Quartzamethystcitrine1_9,
+            dataVar: 'json_Quartzamethystcitrine1_11',
+            layerName: 'layer_Quartzamethystcitrine1_11',
+            pane: 'pane_Quartzamethystcitrine1_11',
+            onEachFeature: pop_Quartzamethystcitrine1_11,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Quartzamethystcitrine1_9_0(feature));
+                return L.shapeMarker(latlng, style_Quartzamethystcitrine1_11_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Quartzamethystcitrine1_9);
-        map.addLayer(layer_Quartzamethystcitrine1_9);
-        function pop_Berylaquamarineemeraldheliodormorganite2_10(feature, layer) {
+        bounds_group.addLayer(layer_Quartzamethystcitrine1_11);
+        map.addLayer(layer_Quartzamethystcitrine1_11);
+        function pop_Berylaquamarineemeraldheliodormorganite2_12(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1238,9 +1259,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Berylaquamarineemeraldheliodormorganite2_10_0() {
+        function style_Berylaquamarineemeraldheliodormorganite2_12_0() {
             return {
-                pane: 'pane_Berylaquamarineemeraldheliodormorganite2_10',
+                pane: 'pane_Berylaquamarineemeraldheliodormorganite2_12',
                 radius: 8.4,
                 opacity: 1,
                 color: 'rgba(0,0,0,1.0)',
@@ -1254,27 +1275,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Berylaquamarineemeraldheliodormorganite2_10');
-        map.getPane('pane_Berylaquamarineemeraldheliodormorganite2_10').style.zIndex = 410;
-        map.getPane('pane_Berylaquamarineemeraldheliodormorganite2_10').style['mix-blend-mode'] = 'normal';
-        var layer_Berylaquamarineemeraldheliodormorganite2_10 = new L.geoJson(json_Berylaquamarineemeraldheliodormorganite2_10, {
+        map.createPane('pane_Berylaquamarineemeraldheliodormorganite2_12');
+        map.getPane('pane_Berylaquamarineemeraldheliodormorganite2_12').style.zIndex = 412;
+        map.getPane('pane_Berylaquamarineemeraldheliodormorganite2_12').style['mix-blend-mode'] = 'normal';
+        var layer_Berylaquamarineemeraldheliodormorganite2_12 = new L.geoJson(json_Berylaquamarineemeraldheliodormorganite2_12, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Berylaquamarineemeraldheliodormorganite2_10',
-            layerName: 'layer_Berylaquamarineemeraldheliodormorganite2_10',
-            pane: 'pane_Berylaquamarineemeraldheliodormorganite2_10',
-            onEachFeature: pop_Berylaquamarineemeraldheliodormorganite2_10,
+            dataVar: 'json_Berylaquamarineemeraldheliodormorganite2_12',
+            layerName: 'layer_Berylaquamarineemeraldheliodormorganite2_12',
+            pane: 'pane_Berylaquamarineemeraldheliodormorganite2_12',
+            onEachFeature: pop_Berylaquamarineemeraldheliodormorganite2_12,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Berylaquamarineemeraldheliodormorganite2_10_0(feature));
+                return L.shapeMarker(latlng, style_Berylaquamarineemeraldheliodormorganite2_12_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Berylaquamarineemeraldheliodormorganite2_10);
-        map.addLayer(layer_Berylaquamarineemeraldheliodormorganite2_10);
-        function pop_Tourmaline9_11(feature, layer) {
+        bounds_group.addLayer(layer_Berylaquamarineemeraldheliodormorganite2_12);
+        map.addLayer(layer_Berylaquamarineemeraldheliodormorganite2_12);
+        function pop_Tourmaline9_13(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1311,9 +1332,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Tourmaline9_11_0() {
+        function style_Tourmaline9_13_0() {
             return {
-                pane: 'pane_Tourmaline9_11',
+                pane: 'pane_Tourmaline9_13',
                 radius: 8.4,
                 opacity: 1,
                 color: 'rgba(0,0,0,1.0)',
@@ -1327,27 +1348,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Tourmaline9_11');
-        map.getPane('pane_Tourmaline9_11').style.zIndex = 411;
-        map.getPane('pane_Tourmaline9_11').style['mix-blend-mode'] = 'normal';
-        var layer_Tourmaline9_11 = new L.geoJson(json_Tourmaline9_11, {
+        map.createPane('pane_Tourmaline9_13');
+        map.getPane('pane_Tourmaline9_13').style.zIndex = 413;
+        map.getPane('pane_Tourmaline9_13').style['mix-blend-mode'] = 'normal';
+        var layer_Tourmaline9_13 = new L.geoJson(json_Tourmaline9_13, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Tourmaline9_11',
-            layerName: 'layer_Tourmaline9_11',
-            pane: 'pane_Tourmaline9_11',
-            onEachFeature: pop_Tourmaline9_11,
+            dataVar: 'json_Tourmaline9_13',
+            layerName: 'layer_Tourmaline9_13',
+            pane: 'pane_Tourmaline9_13',
+            onEachFeature: pop_Tourmaline9_13,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Tourmaline9_11_0(feature));
+                return L.shapeMarker(latlng, style_Tourmaline9_13_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Tourmaline9_11);
-        map.addLayer(layer_Tourmaline9_11);
-        function pop_Sapphireallcoloursunspecifiedcorundum8_12(feature, layer) {
+        bounds_group.addLayer(layer_Tourmaline9_13);
+        map.addLayer(layer_Tourmaline9_13);
+        function pop_Sapphireallcoloursunspecifiedcorundum8_14(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1384,9 +1405,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Sapphireallcoloursunspecifiedcorundum8_12_0() {
+        function style_Sapphireallcoloursunspecifiedcorundum8_14_0() {
             return {
-                pane: 'pane_Sapphireallcoloursunspecifiedcorundum8_12',
+                pane: 'pane_Sapphireallcoloursunspecifiedcorundum8_14',
                 shape: 'diamond',
                 radius: 8.4,
                 opacity: 1,
@@ -1401,27 +1422,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Sapphireallcoloursunspecifiedcorundum8_12');
-        map.getPane('pane_Sapphireallcoloursunspecifiedcorundum8_12').style.zIndex = 412;
-        map.getPane('pane_Sapphireallcoloursunspecifiedcorundum8_12').style['mix-blend-mode'] = 'normal';
-        var layer_Sapphireallcoloursunspecifiedcorundum8_12 = new L.geoJson(json_Sapphireallcoloursunspecifiedcorundum8_12, {
+        map.createPane('pane_Sapphireallcoloursunspecifiedcorundum8_14');
+        map.getPane('pane_Sapphireallcoloursunspecifiedcorundum8_14').style.zIndex = 414;
+        map.getPane('pane_Sapphireallcoloursunspecifiedcorundum8_14').style['mix-blend-mode'] = 'normal';
+        var layer_Sapphireallcoloursunspecifiedcorundum8_14 = new L.geoJson(json_Sapphireallcoloursunspecifiedcorundum8_14, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Sapphireallcoloursunspecifiedcorundum8_12',
-            layerName: 'layer_Sapphireallcoloursunspecifiedcorundum8_12',
-            pane: 'pane_Sapphireallcoloursunspecifiedcorundum8_12',
-            onEachFeature: pop_Sapphireallcoloursunspecifiedcorundum8_12,
+            dataVar: 'json_Sapphireallcoloursunspecifiedcorundum8_14',
+            layerName: 'layer_Sapphireallcoloursunspecifiedcorundum8_14',
+            pane: 'pane_Sapphireallcoloursunspecifiedcorundum8_14',
+            onEachFeature: pop_Sapphireallcoloursunspecifiedcorundum8_14,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Sapphireallcoloursunspecifiedcorundum8_12_0(feature));
+                return L.shapeMarker(latlng, style_Sapphireallcoloursunspecifiedcorundum8_14_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Sapphireallcoloursunspecifiedcorundum8_12);
-        map.addLayer(layer_Sapphireallcoloursunspecifiedcorundum8_12);
-        function pop_Ruby7_13(feature, layer) {
+        bounds_group.addLayer(layer_Sapphireallcoloursunspecifiedcorundum8_14);
+        map.addLayer(layer_Sapphireallcoloursunspecifiedcorundum8_14);
+        function pop_Ruby7_15(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1458,9 +1479,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Ruby7_13_0() {
+        function style_Ruby7_15_0() {
             return {
-                pane: 'pane_Ruby7_13',
+                pane: 'pane_Ruby7_15',
                 radius: 8.4,
                 opacity: 1,
                 color: 'rgba(0,0,0,1.0)',
@@ -1474,27 +1495,27 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Ruby7_13');
-        map.getPane('pane_Ruby7_13').style.zIndex = 413;
-        map.getPane('pane_Ruby7_13').style['mix-blend-mode'] = 'normal';
-        var layer_Ruby7_13 = new L.geoJson(json_Ruby7_13, {
+        map.createPane('pane_Ruby7_15');
+        map.getPane('pane_Ruby7_15').style.zIndex = 415;
+        map.getPane('pane_Ruby7_15').style['mix-blend-mode'] = 'normal';
+        var layer_Ruby7_15 = new L.geoJson(json_Ruby7_15, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Ruby7_13',
-            layerName: 'layer_Ruby7_13',
-            pane: 'pane_Ruby7_13',
-            onEachFeature: pop_Ruby7_13,
+            dataVar: 'json_Ruby7_15',
+            layerName: 'layer_Ruby7_15',
+            pane: 'pane_Ruby7_15',
+            onEachFeature: pop_Ruby7_15,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.circleMarker(latlng, style_Ruby7_13_0(feature));
+                return L.circleMarker(latlng, style_Ruby7_15_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Ruby7_13);
-        map.addLayer(layer_Ruby7_13);
-        function pop_Tsavoritegreengrossulargarnet8_14(feature, layer) {
+        bounds_group.addLayer(layer_Ruby7_15);
+        map.addLayer(layer_Ruby7_15);
+        function pop_Tsavoritegreengrossulargarnet8_16(feature, layer) {
             var popupContent = '<table>\
                     <tr>\
                         <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
@@ -1531,9 +1552,9 @@
 			layer.bindPopup(content, { maxHeight: 400 });
         }
 
-        function style_Tsavoritegreengrossulargarnet8_14_0() {
+        function style_Tsavoritegreengrossulargarnet8_16_0() {
             return {
-                pane: 'pane_Tsavoritegreengrossulargarnet8_14',
+                pane: 'pane_Tsavoritegreengrossulargarnet8_16',
                 shape: 'triangle',
                 radius: 8.4,
                 opacity: 1,
@@ -1548,26 +1569,26 @@
                 interactive: true,
             }
         }
-        map.createPane('pane_Tsavoritegreengrossulargarnet8_14');
-        map.getPane('pane_Tsavoritegreengrossulargarnet8_14').style.zIndex = 414;
-        map.getPane('pane_Tsavoritegreengrossulargarnet8_14').style['mix-blend-mode'] = 'normal';
-        var layer_Tsavoritegreengrossulargarnet8_14 = new L.geoJson(json_Tsavoritegreengrossulargarnet8_14, {
+        map.createPane('pane_Tsavoritegreengrossulargarnet8_16');
+        map.getPane('pane_Tsavoritegreengrossulargarnet8_16').style.zIndex = 416;
+        map.getPane('pane_Tsavoritegreengrossulargarnet8_16').style['mix-blend-mode'] = 'normal';
+        var layer_Tsavoritegreengrossulargarnet8_16 = new L.geoJson(json_Tsavoritegreengrossulargarnet8_16, {
             attribution: '',
             interactive: true,
-            dataVar: 'json_Tsavoritegreengrossulargarnet8_14',
-            layerName: 'layer_Tsavoritegreengrossulargarnet8_14',
-            pane: 'pane_Tsavoritegreengrossulargarnet8_14',
-            onEachFeature: pop_Tsavoritegreengrossulargarnet8_14,
+            dataVar: 'json_Tsavoritegreengrossulargarnet8_16',
+            layerName: 'layer_Tsavoritegreengrossulargarnet8_16',
+            pane: 'pane_Tsavoritegreengrossulargarnet8_16',
+            onEachFeature: pop_Tsavoritegreengrossulargarnet8_16,
             pointToLayer: function (feature, latlng) {
                 var context = {
                     feature: feature,
                     variables: {}
                 };
-                return L.shapeMarker(latlng, style_Tsavoritegreengrossulargarnet8_14_0(feature));
+                return L.shapeMarker(latlng, style_Tsavoritegreengrossulargarnet8_16_0(feature));
             },
         });
-        bounds_group.addLayer(layer_Tsavoritegreengrossulargarnet8_14);
-        map.addLayer(layer_Tsavoritegreengrossulargarnet8_14);
+        bounds_group.addLayer(layer_Tsavoritegreengrossulargarnet8_16);
+        map.addLayer(layer_Tsavoritegreengrossulargarnet8_16);
         // ================= Sidebar toolbox =================
         function el(tag, attrs, children) {
             var node = document.createElement(tag);
@@ -1612,31 +1633,35 @@
         ]);
         var layerGroups = [
             {name: 'Gemstone occurrences', items: [
-                {name: 'Tsavorite (green grossular garnet)', layer: layer_Tsavoritegreengrossulargarnet8_14, pane: 'pane_Tsavoritegreengrossulargarnet8_14', icon: 'Tsavoritegreengrossulargarnet8_14'},
-                {name: 'Ruby', layer: layer_Ruby7_13, pane: 'pane_Ruby7_13', icon: 'Ruby7_13'},
-                {name: 'Sapphire (all colours, corundum)', layer: layer_Sapphireallcoloursunspecifiedcorundum8_12, pane: 'pane_Sapphireallcoloursunspecifiedcorundum8_12', icon: 'Sapphireallcoloursunspecifiedcorundum8_12'},
-                {name: 'Tourmaline', layer: layer_Tourmaline9_11, pane: 'pane_Tourmaline9_11', icon: 'Tourmaline9_11'},
-                {name: 'Beryl (aquamarine, emerald, heliodor, morganite)', layer: layer_Berylaquamarineemeraldheliodormorganite2_10, pane: 'pane_Berylaquamarineemeraldheliodormorganite2_10', icon: 'Berylaquamarineemeraldheliodormorganite2_10'},
-                {name: 'Quartz (amethyst, citrine)', layer: layer_Quartzamethystcitrine1_9, pane: 'pane_Quartzamethystcitrine1_9', icon: 'Quartzamethystcitrine1_9'},
-                {name: 'Iolite (cordierite)', layer: layer_Iolitecordierite1_8, pane: 'pane_Iolitecordierite1_8', icon: 'Iolitecordierite1_8'},
-                {name: 'Other garnet (rhodolite, almandine, spessartine, hessonite)', layer: layer_Othergarnetrhodolitealmandinespessartinehessonite4_7, pane: 'pane_Othergarnetrhodolitealmandinespessartinehessonite4_7', icon: 'Othergarnetrhodolitealmandinespessartinehessonite4_7'},
-                {name: 'Other / unclassified', layer: layer_Otherunclassified1_6, pane: 'pane_Otherunclassified1_6', icon: 'Otherunclassified1_6'}
+                {name: 'Tsavorite (green grossular garnet)', layer: layer_Tsavoritegreengrossulargarnet8_16, pane: 'pane_Tsavoritegreengrossulargarnet8_16', icon: 'Tsavoritegreengrossulargarnet8_16'},
+                {name: 'Ruby', layer: layer_Ruby7_15, pane: 'pane_Ruby7_15', icon: 'Ruby7_15'},
+                {name: 'Sapphire (all colours, corundum)', layer: layer_Sapphireallcoloursunspecifiedcorundum8_14, pane: 'pane_Sapphireallcoloursunspecifiedcorundum8_14', icon: 'Sapphireallcoloursunspecifiedcorundum8_14'},
+                {name: 'Tourmaline', layer: layer_Tourmaline9_13, pane: 'pane_Tourmaline9_13', icon: 'Tourmaline9_13'},
+                {name: 'Beryl (aquamarine, emerald, heliodor, morganite)', layer: layer_Berylaquamarineemeraldheliodormorganite2_12, pane: 'pane_Berylaquamarineemeraldheliodormorganite2_12', icon: 'Berylaquamarineemeraldheliodormorganite2_12'},
+                {name: 'Quartz (amethyst, citrine)', layer: layer_Quartzamethystcitrine1_11, pane: 'pane_Quartzamethystcitrine1_11', icon: 'Quartzamethystcitrine1_11'},
+                {name: 'Iolite (cordierite)', layer: layer_Iolitecordierite1_10, pane: 'pane_Iolitecordierite1_10', icon: 'Iolitecordierite1_10'},
+                {name: 'Other garnet (rhodolite, almandine, spessartine, hessonite)', layer: layer_Othergarnetrhodolitealmandinespessartinehessonite4_9, pane: 'pane_Othergarnetrhodolitealmandinespessartinehessonite4_9', icon: 'Othergarnetrhodolitealmandinespessartinehessonite4_9'},
+                {name: 'Other / unclassified', layer: layer_Otherunclassified1_8, pane: 'pane_Otherunclassified1_8', icon: 'Otherunclassified1_8'}
             ]},
             {name: 'Boundaries', items: [
-                {name: 'Counties', layer: layer_counties_5, pane: 'pane_counties_5', icon: 'counties_5'},
-                {name: 'Kenya boundary', layer: layer_kenya_boundary_4, pane: 'pane_kenya_boundary_4', icon: 'kenya_boundary_4'},
-                {name: 'Protected areas', layer: layer_protected_areas_3, pane: 'pane_protected_areas_3', icon: 'protected_areas_3'}
+                {name: 'Counties', layer: layer_counties_7, pane: 'pane_counties_7', icon: 'counties_7'},
+                {name: 'Kenya boundary', layer: layer_kenya_boundary_6, pane: 'pane_kenya_boundary_6', icon: 'kenya_boundary_6'},
+                {name: 'Protected areas', layer: layer_protected_areas_5, pane: 'pane_protected_areas_5', icon: 'protected_areas_5'}
             ]},
             {name: 'Geology and terrain', items: [
-                {name: 'Prospectivity classes', layer: layer_prospectivity_classes_2, pane: 'pane_prospectivity_classes_2'},
+                {name: 'Prospectivity classes', layer: layer_prospectivity_classes_4, pane: 'pane_prospectivity_classes_4'},
+                {name: 'Prospectivity', layer: layer_prospectivity_3, pane: 'pane_prospectivity_3'},
+                {name: 'Lithology (ev_lithology)', layer: layer_ev_lithology_2, pane: 'pane_ev_lithology_2'},
                 {name: 'Geology (Kenya)', layer: layer_geology_kenya_1, pane: 'pane_geology_kenya_1', legend: geologyLegend},
                 {name: 'Hillshade (Taita Taveta)', layer: layer_hillshade_0, pane: 'pane_hillshade_0'}
             ]}
         ];
 
         // Raster layers start switched off; turn them on in the sidebar
-        map.removeLayer(layer_prospectivity_classes_2);
+        map.removeLayer(layer_prospectivity_classes_4);
         map.removeLayer(layer_hillshade_0);
+        map.removeLayer(layer_prospectivity_3);
+        map.removeLayer(layer_ev_lithology_2);
 
         // ---- Layers: toggles + opacity ----
         var layerList = document.getElementById('layer-list');
@@ -1760,6 +1785,8 @@
 
         // ---- Search ----
         var searchIndex = [];
+        function buildSearchIndex() {
+        searchIndex.length = 0;
         function indexLayer(item, prop, kind, textFn) {
             var seen = {};
             item.layer.eachLayer(function (l) {
@@ -1777,16 +1804,18 @@
             layerGroups.forEach(function (g) { g.items.forEach(function (it) { if (it.layer === layer) found = it; }); });
             return found;
         }
-        [layer_Tsavoritegreengrossulargarnet8_14, layer_Ruby7_13, layer_Sapphireallcoloursunspecifiedcorundum8_12, layer_Tourmaline9_11,
-         layer_Berylaquamarineemeraldheliodormorganite2_10, layer_Quartzamethystcitrine1_9, layer_Iolitecordierite1_8,
-         layer_Othergarnetrhodolitealmandinespessartinehessonite4_7, layer_Otherunclassified1_6].forEach(function (lyr) {
+        [layer_Tsavoritegreengrossulargarnet8_16, layer_Ruby7_15, layer_Sapphireallcoloursunspecifiedcorundum8_14, layer_Tourmaline9_13,
+         layer_Berylaquamarineemeraldheliodormorganite2_12, layer_Quartzamethystcitrine1_11, layer_Iolitecordierite1_10,
+         layer_Othergarnetrhodolitealmandinespessartinehessonite4_9, layer_Otherunclassified1_8].forEach(function (lyr) {
             var item = findItem(lyr);
             var first = lyr.getLayers()[0];
             var kind = (first && first.feature.properties.gem_label) || item.name;
             indexLayer(item, 'name', kind);
         });
-        indexLayer(findItem(layer_counties_5), 'county', 'County');
-        indexLayer(findItem(layer_protected_areas_3), 'NAME', 'Protected area');
+        indexLayer(findItem(layer_counties_7), 'county', 'County');
+        indexLayer(findItem(layer_protected_areas_5), 'NAME', 'Protected area');
+        }
+        buildSearchIndex();
 
         var searchInput = document.getElementById('search-input');
         var searchResults = document.getElementById('search-results');
@@ -1902,36 +1931,177 @@
         map.on('popupopen', function () { if (measuring) map.closePopup(); });
 
         // Start on Kenya unless the link already has a saved view
-        if (!location.hash) map.fitBounds(layer_kenya_boundary_4.getBounds());
+        if (!location.hash) map.fitBounds(layer_kenya_boundary_6.getBounds());
         setBounds();
         var i = 0;
-        layer_counties_5.eachLayer(function(layer) {
+        layer_counties_7.eachLayer(function(layer) {
             var context = {
                 feature: layer.feature,
                 variables: {}
             };
-            layer.bindTooltip((layer.feature.properties['county'] !== null?String('<div style="color: #333333; font-size: 12pt; font-style: italic; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['county']).replace(/\\n/g, '<br>') + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_counties_5'});
+            layer.bindTooltip((layer.feature.properties['county'] !== null?String('<div style="color: #333333; font-size: 8pt; font-style: italic; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['county']).replace(/\\n/g, '<br>') + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_counties_7'});
             labels.push(layer);
             totalMarkers += 1;
               layer.added = true;
               addLabel(layer, i);
               i++;
         });
+        var Filters = {"IUCN_CAT": "str"};
+        function filterFunc() {
+          map.eachLayer(function(lyr){
+          if ("options" in lyr && "dataVar" in lyr["options"]){
+            features = this[lyr["options"]["dataVar"]].features.slice(0);
+            try{
+              for (key in Filters){
+                keyS = key.replace(/[^a-zA-Z0-9_]/g, "")
+                if (Filters[key] == "str" || Filters[key] == "bool"){
+                  var selection = [];
+                  var options = document.getElementById("sel_" + keyS).options
+                  for (var i=0; i < options.length; i++) {
+                    if (options[i].selected) selection.push(options[i].value);
+                  }
+                    try{
+                      if (key in features[0].properties){
+                        for (i = features.length - 1;
+                          i >= 0; --i){
+                          if (selection.indexOf(
+                          features[i].properties[key])<0
+                          && selection.length>0) {
+                          features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                  }
+                }
+                if (Filters[key] == "int"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (parseInt(features[i].properties[key])
+                          < sliderVals[0]
+                          || parseInt(features[i].properties[key])
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "real"){
+                  sliderVals =  document.getElementById(
+                    "div_" + keyS).noUiSlider.get();
+                  try{
+                    if (key in features[0].properties){
+                    for (i = features.length - 1; i >= 0; --i){
+                      if (features[i].properties[key]
+                          < sliderVals[0]
+                          || features[i].properties[key]
+                          > sliderVals[1]){
+                            features.splice(i,1);
+                          }
+                        }
+                      }
+                    } catch(err){
+                    }
+                  }
+                if (Filters[key] == "date"
+                  || Filters[key] == "datetime"
+                  || Filters[key] == "time"){
+                  try{
+                    if (key in features[0].properties){
+                      HTMLkey = key.replace(/[&\\/\\#,+()$~%.'":*?<>{} ]/g, '');
+                      startdate = document.getElementById("dat_" +
+                        HTMLkey + "_date1").value.replace(" ", "T");
+                      enddate = document.getElementById("dat_" +
+                        HTMLkey + "_date2").value.replace(" ", "T");
+                      for (i = features.length - 1; i >= 0; --i){
+                        if (features[i].properties[key] < startdate
+                          || features[i].properties[key] > enddate){
+                          features.splice(i,1);
+                        }
+                      }
+                    }
+                  } catch(err){
+                  }
+                }
+              }
+            } catch(err){
+            }
+          this[lyr["options"]["layerName"]].clearLayers();
+          this[lyr["options"]["layerName"]].addData(features);
+        var i = 0;
+        if (lyr === layer_counties_7) layer_counties_7.eachLayer(function(layer) {
+            var context = {
+                feature: layer.feature,
+                variables: {}
+            };
+            layer.bindTooltip((layer.feature.properties['county'] !== null?String('<div style="color: #333333; font-size: 8pt; font-style: italic; font-family: \'Arial\', sans-serif;">' + layer.feature.properties['county']).replace(/\\n/g, '<br>') + '</div>':''), {permanent: true, offset: [-0, -16], className: 'css_counties_7'});
+            labels.push(layer);
+            totalMarkers += 1;
+              layer.added = true;
+              addLabel(layer, i);
+              i++;
+        });
+          }
+          })
+        }
+            document.getElementById("menu").appendChild(
+                document.createElement("div"));
+            var div_IUCN_CAT = document.createElement('div');
+            div_IUCN_CAT.id = "div_IUCN_CAT";
+            div_IUCN_CAT.className= "filterselect";
+            document.getElementById("menu").appendChild(div_IUCN_CAT);
+            sel_IUCN_CAT = document.createElement('select');
+            sel_IUCN_CAT.multiple = true;
+            sel_IUCN_CAT.size = 7;
+            sel_IUCN_CAT.id = "sel_IUCN_CAT";
+            var IUCN_CAT_options_str = "<option value='' unselected></option>";
+            sel_IUCN_CAT.onchange = function(){filterFunc()};
+            IUCN_CAT_options_str  += '<option value="II">II</option>';
+            IUCN_CAT_options_str  += '<option value="III">III</option>';
+            IUCN_CAT_options_str  += '<option value="IV">IV</option>';
+            IUCN_CAT_options_str  += '<option value="Ib">Ib</option>';
+            IUCN_CAT_options_str  += '<option value="Not Applicable">Not Applicable</option>';
+            IUCN_CAT_options_str  += '<option value="Not Reported">Not Reported</option>';
+            IUCN_CAT_options_str  += '<option value="VI">VI</option>';
+            sel_IUCN_CAT.innerHTML = IUCN_CAT_options_str;
+            div_IUCN_CAT.appendChild(sel_IUCN_CAT);
+            var lab_IUCN_CAT = document.createElement('div');
+            lab_IUCN_CAT.innerHTML = 'IUCN category';
+            lab_IUCN_CAT.className = 'filterlabel';
+            div_IUCN_CAT.appendChild(lab_IUCN_CAT);
+            var reset_IUCN_CAT = document.createElement('div');
+            reset_IUCN_CAT.innerHTML = 'clear filter';
+            reset_IUCN_CAT.className = 'filterlabel';
+            reset_IUCN_CAT.onclick = function() {
+                var options = document.getElementById("sel_IUCN_CAT").options;
+                for (var i=0; i < options.length; i++) {
+                    options[i].selected = false;
+                }
+                filterFunc();
+            };
+            div_IUCN_CAT.appendChild(reset_IUCN_CAT);
+        var exportFilterFunc = filterFunc;
+        filterFunc = function () { exportFilterFunc(); buildSearchIndex(); localSearch(); };
         L.ImageOverlay.include({
             getBounds: function () {
                 return this._bounds;
             }
         });
-        resetLabels([layer_counties_5]);
+        resetLabels([layer_counties_7]);
         map.on("zoomend", function(){
-            resetLabels([layer_counties_5]);
+            resetLabels([layer_counties_7]);
         });
         map.on("layeradd", function(){
-            resetLabels([layer_counties_5]);
+            resetLabels([layer_counties_7]);
         });
         map.on("layerremove", function(){
-            resetLabels([layer_counties_5]);
+            resetLabels([layer_counties_7]);
         });
-        </script>        
+        </script>
     </body>
 </html>
