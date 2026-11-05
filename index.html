@@ -299,7 +299,7 @@
         <script>
         var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
-        }).fitBounds([[-6.209025254748212,35.46088516107817],[-1.8061871387692976,40.03711363678221]]);
+        }).fitBounds([[-4.0182089629320314,37.65444804607245],[-2.8161825042456585,38.90035996834973]]);
         var hash = new L.Hash(map);
         map.attributionControl.setPrefix('<a href="https://github.com/qgis2web/qgis2web" target="_blank">qgis2web</a> &middot; <a href="https://leafletjs.com" title="A JS library for interactive maps">Leaflet</a> &middot; <a href="https://qgis.org">QGIS</a>');
         var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
@@ -3084,6 +3084,35 @@
         });
         bounds_group.addLayer(layer_Tsavoritegreengrossulargarnet8_54);
         map.addLayer(layer_Tsavoritegreengrossulargarnet8_54);
+
+        // Hide all raster layers by default
+        map.removeLayer(layer_soil5_1);
+        map.removeLayer(layer_landcover5_2);
+        map.removeLayer(layer_wetness10_3);
+        map.removeLayer(layer_drainage10_4);
+        map.removeLayer(layer_rainfall15_5);
+        map.removeLayer(layer_slope15_6);
+        map.removeLayer(layer_geology20_7);
+        map.removeLayer(layer_fractures20_8);
+        map.removeLayer(layer_hillshade_9);
+        map.removeLayer(layer_ev_lithology_11);
+        map.removeLayer(layer_prospectivity_12);
+        map.removeLayer(layer_prospectivity_classes_13);
+        map.removeLayer(layer_Groundwaterpotential_18);
+        map.removeLayer(layer_Groundwaterscore01_20);
+        map.removeLayer(layer_Distancetonearestmappedwaterkm_22);
+        map.removeLayer(layer_Groundwaterscore01_24);
+        map.removeLayer(layer_Groundwaterpotential_25);
+        map.removeLayer(layer_soil5_27);
+        map.removeLayer(layer_landcover5_28);
+        map.removeLayer(layer_wetness10_29);
+        map.removeLayer(layer_drainage10_30);
+        map.removeLayer(layer_rainfall15_31);
+        map.removeLayer(layer_slope15_32);
+        map.removeLayer(layer_fractures20_33);
+        map.removeLayer(layer_geology20_34);
+        map.removeLayer(layer_Surfacewater19842021oftime_36);
+        map.removeLayer(layer_Surfacewater20242026ofclearimages_37);
         // ================= Sidebar toolbox =================
         function el(tag, attrs, children) {
             var node = document.createElement(tag);
