@@ -173,6 +173,12 @@
         .lg-item td { padding: 2px 8px 2px 0; vertical-align: middle; color: var(--text); }
         .lg-item img { display: block; background: #f2efe6; border-radius: 3px; padding: 1px; }
         .lg-swatch { display: flex; align-items: center; gap: 8px; }
+        .lg-about { color: var(--muted); font-size: 12px; line-height: 1.4; margin: 2px 0 6px; }
+        .lg-box { display: inline-block; width: 16px; height: 16px; border-radius: 3px; border: 1px solid #333; }
+        .lg-ramp { height: 12px; border-radius: 3px; border: 1px solid #333;
+            background: linear-gradient(to right, #2c7bb6, #abd9e9, #ffffbf, #fdae61, #d7191c); }
+        .lg-ramp-labels { display: flex; justify-content: space-between; font-size: 12px; color: var(--text); margin-top: 3px; }
+        .lg-item td.lg-sub { color: var(--muted); font-size: 12px; }
 
 
         /* Filter (moved into the sidebar) */
@@ -3053,13 +3059,36 @@
             ['geology_kenya_1_H2OH2O0', 'Water [H2O]'],
             ['geology_kenya_1_SEASEA14', 'Sea [SEA]']
         ]);
-        var hydroLegend = legendTable([
-            ['querywhere13D1outFieldsoutSR4326fgeojson_0_BLM0', 'B-L/M'],
-            ['querywhere13D1outFieldsoutSR4326fgeojson_0_CSIFM1', 'CSIF-M'],
-            ['querywhere13D1outFieldsoutSR4326fgeojson_0_IM2', 'I-M'],
-            ['querywhere13D1outFieldsoutSR4326fgeojson_0_na3', 'n/a'],
-            ['querywhere13D1outFieldsoutSR4326fgeojson_0_UCSIMH4', 'U/CSI-M/H'],
-            ['querywhere13D1outFieldsoutSR4326fgeojson_0_5', 'Other']
+        function boxTable(rows) {
+            return '<table>' + rows.map(function (r) {
+                return '<tr><td><span class="lg-box" style="background:' + r[0] + '"></span></td><td>' + r[1] +
+                    (r[2] ? '<div class="lg-sub">' + r[2] + '</div>' : '') + '</td></tr>';
+            }).join('') + '</table>';
+        }
+        function ramp(low, high) {
+            return '<div class="lg-ramp"></div><div class="lg-ramp-labels"><span>' + low + '</span><span>' + high + '</span></div>';
+        }
+        // Hydrogeology codes (British Geological Survey scheme): rock type + how much groundwater it yields
+        var HYDRO = {
+            'B-L/M': ['Basement rock', 'Low to moderate groundwater'],
+            'CSIF-M': ['Older sedimentary rock', 'Moderate groundwater'],
+            'I-M': ['Volcanic rock', 'Moderate groundwater'],
+            'U/CSI-M/H': ['Young, loose sediments', 'Moderate to high groundwater'],
+            'n/a': ['Lakes and surface water', 'Not classified']
+        };
+        var hydroLegend = boxTable([
+            ['rgb(240,118,146)', HYDRO['B-L/M'][0], HYDRO['B-L/M'][1]],
+            ['rgb(98,128,234)', HYDRO['CSIF-M'][0], HYDRO['CSIF-M'][1]],
+            ['rgb(191,74,223)', HYDRO['I-M'][0], HYDRO['I-M'][1]],
+            ['rgb(226,198,107)', HYDRO['U/CSI-M/H'][0], HYDRO['U/CSI-M/H'][1]],
+            ['rgb(102,208,69)', HYDRO['n/a'][0], HYDRO['n/a'][1]]
+        ]);
+        // Colours and class names from the QGIS project
+        var prospectClassLegend = boxTable([
+            ['#d7191c', 'Very high potential'],
+            ['#fdae61', 'High potential'],
+            ['#ffffbf', 'Moderate potential'],
+            ['#1a9641', 'Low potential']
         ]);
         var layerGroups = [
             {name: 'Gemstone occurrences', items: [
@@ -3074,33 +3103,33 @@
                 {name: 'Other / unclassified', layer: layer_Otherunclassified1_8, pane: 'pane_Otherunclassified1_8', icon: 'Otherunclassified1_8'}
             ]},
             {name: 'Mineral occurrences', items: [
-                {name: 'Mineral occurrences (2011)', layer: layer_MineraloccurrenceKenya2011_1_1, pane: 'pane_MineraloccurrenceKenya2011_1_1', icon: 'MineraloccurrenceKenya2011_1_1'}
+                {name: 'Mineral occurrences (2011)', layer: layer_MineraloccurrenceKenya2011_1_1, pane: 'pane_MineraloccurrenceKenya2011_1_1', icon: 'MineraloccurrenceKenya2011_1_1', about: 'Places where a mineral has been recorded. Click a dot to see which.'}
             ]},
             {name: 'Boundaries', items: [
                 {name: 'Counties', layer: layer_counties_7, pane: 'pane_counties_7', icon: 'counties_7'},
                 {name: 'Kenya boundary', layer: layer_kenya_boundary_6, pane: 'pane_kenya_boundary_6', icon: 'kenya_boundary_6'},
-                {name: 'Protected areas', layer: layer_protected_areas_5, pane: 'pane_protected_areas_5', icon: 'protected_areas_5'}
+                {name: 'Protected areas', layer: layer_protected_areas_5, pane: 'pane_protected_areas_5', icon: 'protected_areas_5', about: 'National parks, reserves and other protected land.'}
             ]},
             {name: 'New-law licences', items: [
-                {name: 'Dealers', layer: layer_004_New_Law_Licences_Dealers_5, pane: 'pane_004_New_Law_Licences_Dealers_5', icon: '004_New_Law_Licences_Dealers_5'},
-                {name: 'Mining licences', layer: layer_003_New_Law_Licences_Mining_4, pane: 'pane_003_New_Law_Licences_Mining_4', icon: '003_New_Law_Licences_Mining_4'},
-                {name: 'Exploration licences', layer: layer_002_New_Law_Licences_Exploration_3, pane: 'pane_002_New_Law_Licences_Exploration_3', icon: '002_New_Law_Licences_Exploration_3'},
-                {name: 'Artisanal quarry licences', layer: layer_001_New_Law_Licences_Artisanal_Quarry_2, pane: 'pane_001_New_Law_Licences_Artisanal_Quarry_2', icon: '001_New_Law_Licences_Artisanal_Quarry_2'}
+                {name: 'Dealers', layer: layer_004_New_Law_Licences_Dealers_5, pane: 'pane_004_New_Law_Licences_Dealers_5', icon: '004_New_Law_Licences_Dealers_5', about: 'Licensed mineral dealers (buying and selling points).'},
+                {name: 'Mining licences', layer: layer_003_New_Law_Licences_Mining_4, pane: 'pane_003_New_Law_Licences_Mining_4', icon: '003_New_Law_Licences_Mining_4', about: 'Land licensed for mining under the Mining Act 2016.'},
+                {name: 'Exploration licences', layer: layer_002_New_Law_Licences_Exploration_3, pane: 'pane_002_New_Law_Licences_Exploration_3', icon: '002_New_Law_Licences_Exploration_3', about: 'Land licensed for exploring (searching) for minerals.'},
+                {name: 'Artisanal quarry licences', layer: layer_001_New_Law_Licences_Artisanal_Quarry_2, pane: 'pane_001_New_Law_Licences_Artisanal_Quarry_2', icon: '001_New_Law_Licences_Artisanal_Quarry_2', about: 'Small-scale quarrying permits.'}
             ]},
             {name: 'Old-law licences', items: [
-                {name: 'Mining licences', layer: layer_008_Old_Law_Licences_Mining_7, pane: 'pane_008_Old_Law_Licences_Mining_7', icon: '008_Old_Law_Licences_Mining_7'},
-                {name: 'Exploration licences', layer: layer_007_Old_Law_Licences_Exploration_6, pane: 'pane_007_Old_Law_Licences_Exploration_6', icon: '007_Old_Law_Licences_Exploration_6'}
+                {name: 'Mining licences', layer: layer_008_Old_Law_Licences_Mining_7, pane: 'pane_008_Old_Law_Licences_Mining_7', icon: '008_Old_Law_Licences_Mining_7', about: 'Mining leases granted under the old (1940) regulations.'},
+                {name: 'Exploration licences', layer: layer_007_Old_Law_Licences_Exploration_6, pane: 'pane_007_Old_Law_Licences_Exploration_6', icon: '007_Old_Law_Licences_Exploration_6', about: 'Exploration licences granted under the old regulations.'}
             ]},
             {name: 'Licence applications', items: [
-                {name: 'Applications', layer: layer_009_Applications_8, pane: 'pane_009_Applications_8', icon: '009_Applications_8'}
+                {name: 'Applications', layer: layer_009_Applications_8, pane: 'pane_009_Applications_8', icon: '009_Applications_8', about: 'Licence applications that are still being processed.'}
             ]},
             {name: 'Geology and terrain', items: [
-                {name: 'Prospectivity classes', layer: layer_prospectivity_classes_4, pane: 'pane_prospectivity_classes_4'},
-                {name: 'Prospectivity', layer: layer_prospectivity_3, pane: 'pane_prospectivity_3'},
-                {name: 'Lithology (ev_lithology)', layer: layer_ev_lithology_2, pane: 'pane_ev_lithology_2'},
-                {name: 'Hydrogeology (KenHGComb)', layer: layer_querywhere13D1outFieldsoutSR4326fgeojson_0, pane: 'pane_querywhere13D1outFieldsoutSR4326fgeojson_0', legend: hydroLegend},
-                {name: 'Geology (Kenya)', layer: layer_geology_kenya_1, pane: 'pane_geology_kenya_1', legend: geologyLegend},
-                {name: 'Hillshade (Taita Taveta)', layer: layer_hillshade_0, pane: 'pane_hillshade_0'}
+                {name: 'Gemstone potential (classes)', layer: layer_prospectivity_classes_4, pane: 'pane_prospectivity_classes_4', legend: prospectClassLegend, about: 'Model estimate of where gemstones are most likely to be found, in four classes.'},
+                {name: 'Gemstone potential (score)', layer: layer_prospectivity_3, pane: 'pane_prospectivity_3', legend: ramp('Low', 'High'), about: 'The same model as a smooth score: blue is low potential, red is high.'},
+                {name: 'Favourable rock types', layer: layer_ev_lithology_2, pane: 'pane_ev_lithology_2', legend: ramp('Less favourable', 'More favourable'), about: 'How well the local rock type suits gemstones. One of the inputs to the potential model.'},
+                {name: 'Groundwater (aquifer types)', layer: layer_querywhere13D1outFieldsoutSR4326fgeojson_0, pane: 'pane_querywhere13D1outFieldsoutSR4326fgeojson_0', legend: hydroLegend, about: 'Rock types grouped by how much groundwater a borehole is likely to yield.'},
+                {name: 'Geology (Kenya)', layer: layer_geology_kenya_1, pane: 'pane_geology_kenya_1', legend: geologyLegend, about: 'Main rock units by geological age (letters in brackets are the map codes).'},
+                {name: 'Terrain shading (Taita Taveta)', layer: layer_hillshade_0, pane: 'pane_hillshade_0', legend: '', about: 'Shaded relief that shows hills and valleys.'}
             ]}
         ];
 
@@ -3116,6 +3145,41 @@
         map.removeLayer(layer_hillshade_0);
         map.removeLayer(layer_prospectivity_3);
         map.removeLayer(layer_ev_lithology_2);
+
+
+        // ---- Readable popups: field names people understand ----
+        function esc(v) { return String(v).replace(/[&<>"]/g, function (c) { return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]; }); }
+        function popTable(title, rows) {
+            return '<table><tr><th colspan="2"><strong>' + esc(title) + '</strong></th></tr>' + rows.filter(function (r) {
+                return r[1] !== null && r[1] !== undefined && r[1] !== '';
+            }).map(function (r) {
+                return '<tr><th scope="row">' + r[0] + '</th><td>' + esc(r[1]) + '</td></tr>';
+            }).join('') + '</table>';
+        }
+        function rebindPopups(layer, fn) {
+            layer.eachLayer(function (l) { l.unbindPopup(); l.off('popupopen'); l.bindPopup(fn(l.feature.properties, l), {maxHeight: 400}); });
+        }
+        rebindPopups(layer_querywhere13D1outFieldsoutSR4326fgeojson_0, function (p) {
+            var h = HYDRO[p.KenHGComb] || [p.KenHGComb, ''];
+            return popTable('Groundwater: ' + h[0], [['Groundwater', h[1]], ['Rocks', p.KenGLG], ['Map code', p.KenHGComb]]);
+        });
+        rebindPopups(layer_MineraloccurrenceKenya2011_1_1, function (p, l) {
+            var ll = l.getLatLng();
+            return popTable(p.MINERAL || 'Mineral occurrence', [['Symbol', p.MIN_SYM], ['Type', p.PRIMARY_DI],
+                ['Notes', [p.LABEL_2_VA, p.REMARKS].filter(Boolean).join('; ')], ['Location', ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5)]]);
+        });
+        [layer_009_Applications_8, layer_004_New_Law_Licences_Dealers_5, layer_003_New_Law_Licences_Mining_4,
+         layer_002_New_Law_Licences_Exploration_3, layer_001_New_Law_Licences_Artisanal_Quarry_2,
+         layer_008_Old_Law_Licences_Mining_7, layer_007_Old_Law_Licences_Exploration_6].forEach(function (lyr) {
+            rebindPopups(lyr, function (p) {
+                return popTable(p.Type + ' ' + p.Code, [
+                    ['Holder', p.Parties], ['Minerals', p.Commodities], ['Status', p.Status],
+                    ['Area', p.AreaValue ? p.AreaValue + ' ' + (p.AreaUnit || '').toLowerCase() + (p.AreaValue == 1 ? '' : 's') : ''],
+                    ['Location', (p.MapRef || '').replace(/^Kenya, /, '')], ['Name', p.Name],
+                    ['Applied', p.DteApplied], ['Granted', p.DteGranted], ['Expires', p.DteExpires],
+                    ['Law', p.Jurisdic], ['Notes', p.Comments]]);
+            });
+        });
 
         // ---- Layers: toggles + opacity ----
         var layerList = document.getElementById('layer-list');
@@ -3199,12 +3263,14 @@
                 group.items.forEach(function (item) {
                     if (!map.hasLayer(item.layer)) return;
                     shown++;
-                    var body;
-                    if (item.legend) body = el('div', {html: item.legend});
-                    else if (item.icon) body = el('div', {class: 'lg-swatch', html: img(item.icon) + '<span>' + item.name + '</span>'});
-                    else body = el('div', {class: 'hint', text: 'Raster layer'});
+                    var keyed = item.legend !== undefined || !item.icon;
+                    var body = item.legend ? el('div', {html: item.legend})
+                        : item.icon ? el('div', {class: 'lg-swatch', html: img(item.icon) + '<span>' + item.name + '</span>'}) : null;
                     legendBox.appendChild(el('div', {class: 'lg-item'}, [
-                        item.legend || !item.icon ? el('div', {class: 'lg-name', text: item.name}) : null, body
+                        keyed ? el('div', {class: 'lg-name', text: item.name}) : null,
+                        keyed && item.about ? el('div', {class: 'lg-about', text: item.about}) : null,
+                        body,
+                        !keyed && item.about ? el('div', {class: 'lg-about', text: item.about}) : null
                     ]));
                 });
             });
