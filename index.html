@@ -165,6 +165,17 @@
         .btn-row { display: flex; gap: 6px; }
         .btn-row .sb-btn { flex: 1; }
 
+        /* County & belts */
+        #county-select { width: 100%; }
+        #county-info .cb-title { color: var(--gold-soft); font-weight: 600; margin: 10px 0 6px; }
+        #county-info .cb-row { display: flex; align-items: center; gap: 8px; width: 100%; padding: 5px 6px; margin: 0 0 4px;
+            background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+        #county-info .cb-row:hover, #county-info .cb-row.on { border-color: var(--gold); }
+        #county-info .cb-row .lg-box { flex: none; }
+        #county-info .cb-row .cb-name { flex: 1; }
+        #county-info .cb-row .cb-pct { color: var(--muted); font-size: 12px; white-space: nowrap; }
+        #county-info .cb-none { color: var(--muted); font-size: 12px; }
+
         /* Legend */
         .lg-item { padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
         .lg-item:last-child { border-bottom: 0; }
@@ -257,6 +268,14 @@
                     </div>
                 </details>
                 <details class="sb-section" open>
+                    <summary><i class="fas fa-draw-polygon"></i>County &amp; geological belts</summary>
+                    <div class="sb-content">
+                        <select class="sb-input" id="county-select" aria-label="Choose a county"><option value="">Choose a county…</option></select>
+                        <div id="county-info"></div>
+                        <p class="hint" id="county-hint">Pick a county to outline it and trace the geological belts inside it, such as the greenstone-bearing Nyanza Craton or the Mozambique Belt.</p>
+                    </div>
+                </details>
+                <details class="sb-section" open>
                     <summary><i class="fas fa-globe"></i>Basemaps</summary>
                     <div class="sb-content" id="basemap-list"></div>
                 </details>
@@ -332,6 +351,9 @@
         <script src="data/007_Old_Law_Licences_Exploration_6.js"></script>
         <script src="data/008_Old_Law_Licences_Mining_7.js"></script>
         <script src="data/009_Applications_8.js"></script>
+        <script src="data/KenyariversHydroRIVERS_9.js"></script>
+        <script src="data/Boreholescreeningzones_10.js"></script>
+        <script src="data/county_belts.js"></script>
         <script>
         var map = L.map('map', {
             zoomControl:false, maxZoom:28, minZoom:1
@@ -3017,6 +3039,194 @@
         const url = {"Nominatim OSM": "https://nominatim.openstreetmap.org/search?format=geojson&addressdetails=1&",
         "France BAN": "https://api-adresse.data.gouv.fr/search/?"}
 
+        // ---- Layers from the 2026-11-09 export: rivers, borehole screening zones ----
+        function pop_KenyariversHydroRIVERS_9(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(String(feature.properties['OBJECTID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HYRIV_ID'] !== null ? autolinker.link(String(feature.properties['HYRIV_ID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['NEXT_DOWN'] !== null ? autolinker.link(String(feature.properties['NEXT_DOWN']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['MAIN_RIV'] !== null ? autolinker.link(String(feature.properties['MAIN_RIV']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['LENGTH_KM'] !== null ? autolinker.link(String(feature.properties['LENGTH_KM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DIST_DN_KM'] !== null ? autolinker.link(String(feature.properties['DIST_DN_KM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DIST_UP_KM'] !== null ? autolinker.link(String(feature.properties['DIST_UP_KM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['CATCH_SKM'] !== null ? autolinker.link(String(feature.properties['CATCH_SKM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['UPLAND_SKM'] !== null ? autolinker.link(String(feature.properties['UPLAND_SKM']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ENDORHEIC'] !== null ? autolinker.link(String(feature.properties['ENDORHEIC']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['DIS_AV_CMS'] !== null ? autolinker.link(String(feature.properties['DIS_AV_CMS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ORD_STRA'] !== null ? autolinker.link(String(feature.properties['ORD_STRA']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ORD_CLAS'] !== null ? autolinker.link(String(feature.properties['ORD_CLAS']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['ORD_FLOW'] !== null ? autolinker.link(String(feature.properties['ORD_FLOW']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['HYBAS_L12'] !== null ? autolinker.link(String(feature.properties['HYBAS_L12']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape_Length'] !== null ? autolinker.link(String(feature.properties['Shape_Length']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_KenyariversHydroRIVERS_9_0() {
+            return {
+                pane: 'pane_KenyariversHydroRIVERS_9',
+                opacity: 1,
+                color: 'rgba(31,120,180,1.0)',
+                dashArray: '',
+                lineCap: 'square',
+                lineJoin: 'bevel',
+                weight: 1.0,
+                fillOpacity: 0,
+                interactive: true,
+            }
+        }
+        map.createPane('pane_KenyariversHydroRIVERS_9');
+        map.getPane('pane_KenyariversHydroRIVERS_9').style.zIndex = 409;
+        map.getPane('pane_KenyariversHydroRIVERS_9').style['mix-blend-mode'] = 'normal';
+        var layer_KenyariversHydroRIVERS_9 = new L.geoJson(json_KenyariversHydroRIVERS_9, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_KenyariversHydroRIVERS_9',
+            layerName: 'layer_KenyariversHydroRIVERS_9',
+            pane: 'pane_KenyariversHydroRIVERS_9',
+            onEachFeature: pop_KenyariversHydroRIVERS_9,
+            style: style_KenyariversHydroRIVERS_9_0,
+        });
+        bounds_group.addLayer(layer_KenyariversHydroRIVERS_9);
+        map.addLayer(layer_KenyariversHydroRIVERS_9);
+        function pop_Boreholescreeningzones_10(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['fid'] !== null ? autolinker.link(String(feature.properties['fid']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['OBJECTID'] !== null ? autolinker.link(String(feature.properties['OBJECTID']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KenGLG'] !== null ? autolinker.link(String(feature.properties['KenGLG']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['KenHGComb'] !== null ? autolinker.link(String(feature.properties['KenHGComb']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape__Area'] !== null ? autolinker.link(String(feature.properties['Shape__Area']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['Shape__Length'] !== null ? autolinker.link(String(feature.properties['Shape__Length']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['potential'] !== null ? autolinker.link(String(feature.properties['potential']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['rank'] !== null ? autolinker.link(String(feature.properties['rank']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['layer'] !== null ? autolinker.link(String(feature.properties['layer']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['path'] !== null ? autolinker.link(String(feature.properties['path']).replace(/'/g, '\'').toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+
+        function style_Boreholescreeningzones_10_0(feature) {
+            switch(String(feature.properties['rank'])) {
+                case '4':
+                    return {
+                pane: 'pane_Boreholescreeningzones_10',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(26,152,80,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '3':
+                    return {
+                pane: 'pane_Boreholescreeningzones_10',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(166,217,106,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '2':
+                    return {
+                pane: 'pane_Boreholescreeningzones_10',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(254,224,139,0.75)',
+                interactive: true,
+            }
+                    break;
+                case '1':
+                    return {
+                pane: 'pane_Boreholescreeningzones_10',
+                stroke: false, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(244,109,67,0.75)',
+                interactive: true,
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Boreholescreeningzones_10');
+        map.getPane('pane_Boreholescreeningzones_10').style.zIndex = 410;
+        map.getPane('pane_Boreholescreeningzones_10').style['mix-blend-mode'] = 'normal';
+        var layer_Boreholescreeningzones_10 = new L.geoJson(json_Boreholescreeningzones_10, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_Boreholescreeningzones_10',
+            layerName: 'layer_Boreholescreeningzones_10',
+            pane: 'pane_Boreholescreeningzones_10',
+            onEachFeature: pop_Boreholescreeningzones_10,
+            style: style_Boreholescreeningzones_10_0,
+        });
+        bounds_group.addLayer(layer_Boreholescreeningzones_10);
+        map.addLayer(layer_Boreholescreeningzones_10);
+
         // ================= Sidebar toolbox =================
         function el(tag, attrs, children) {
             var node = document.createElement(tag);
@@ -3083,6 +3293,18 @@
             ['rgb(226,198,107)', HYDRO['U/CSI-M/H'][0], HYDRO['U/CSI-M/H'][1]],
             ['rgb(102,208,69)', HYDRO['n/a'][0], HYDRO['n/a'][1]]
         ]);
+        var BOREHOLE = {
+            4: ['Highest', 'Moderate-to-high aquifer near a river'],
+            3: ['High', 'Moderate-to-high aquifer, or moderate aquifer near a river'],
+            2: ['Medium', 'Moderate aquifer, or basement rock near a river'],
+            1: ['Lower', 'Basement rock away from rivers']
+        };
+        var boreholeLegend = boxTable([
+            ['rgba(26,152,80,0.75)', BOREHOLE[4][0] + ' chance', BOREHOLE[4][1]],
+            ['rgba(166,217,106,0.75)', BOREHOLE[3][0] + ' chance', BOREHOLE[3][1]],
+            ['rgba(254,224,139,0.75)', BOREHOLE[2][0] + ' chance', BOREHOLE[2][1]],
+            ['rgba(244,109,67,0.75)', BOREHOLE[1][0] + ' chance', BOREHOLE[1][1]]
+        ]);
         // Colours and class names from the QGIS project
         var prospectClassLegend = boxTable([
             ['#d7191c', 'Very high potential'],
@@ -3123,6 +3345,10 @@
             {name: 'Licence applications', items: [
                 {name: 'Applications', layer: layer_009_Applications_8, pane: 'pane_009_Applications_8', icon: '009_Applications_8', about: 'Licence applications that are still being processed.'}
             ]},
+            {name: 'Water', items: [
+                {name: 'Rivers', layer: layer_KenyariversHydroRIVERS_9, pane: 'pane_KenyariversHydroRIVERS_9', icon: 'KenyariversHydroRIVERS_9', about: 'Rivers and streams (HydroRIVERS). Click a river for its average flow.'},
+                {name: 'Borehole screening zones', layer: layer_Boreholescreeningzones_10, pane: 'pane_Boreholescreeningzones_10', legend: boreholeLegend, about: 'First look at where drilling a borehole is most likely to find water, based on aquifer type and distance to rivers. Not a substitute for a site survey.'}
+            ]},
             {name: 'Geology and terrain', items: [
                 {name: 'Gemstone potential (classes)', layer: layer_prospectivity_classes_4, pane: 'pane_prospectivity_classes_4', legend: prospectClassLegend, about: 'Model estimate of where gemstones are most likely to be found, in four classes.'},
                 {name: 'Gemstone potential (score)', layer: layer_prospectivity_3, pane: 'pane_prospectivity_3', legend: ramp('Low', 'High'), about: 'The same model as a smooth score: blue is low potential, red is high.'},
@@ -3162,6 +3388,15 @@
         rebindPopups(layer_querywhere13D1outFieldsoutSR4326fgeojson_0, function (p) {
             var h = HYDRO[p.KenHGComb] || [p.KenHGComb, ''];
             return popTable('Groundwater: ' + h[0], [['Groundwater', h[1]], ['Rocks', p.KenGLG], ['Map code', p.KenHGComb]]);
+        });
+        rebindPopups(layer_Boreholescreeningzones_10, function (p) {
+            var z = BOREHOLE[p.rank] || ['', ''], h = HYDRO[p.KenHGComb] || [p.KenHGComb, ''];
+            return popTable('Borehole zone: ' + z[0] + ' chance', [['Why', z[1]], ['Aquifer', h[0] + (h[1] ? ' (' + h[1].toLowerCase() + ')' : '')], ['Rocks', p.KenGLG]]);
+        });
+        rebindPopups(layer_KenyariversHydroRIVERS_9, function (p) {
+            return popTable('River', [['Average flow', p.DIS_AV_CMS != null ? p.DIS_AV_CMS + ' m\u00b3/s' : ''],
+                ['Stream order', p.ORD_STRA], ['Area draining here', p.UPLAND_SKM != null ? Math.round(p.UPLAND_SKM).toLocaleString() + ' km\u00b2' : ''],
+                ['Segment length', p.LENGTH_KM != null ? p.LENGTH_KM + ' km' : '']]);
         });
         rebindPopups(layer_MineraloccurrenceKenya2011_1_1, function (p, l) {
             var ll = l.getLatLng();
@@ -3303,6 +3538,66 @@
         if (mobileQuery.matches) setSidebar(false);
         function closeSidebarOnMobile() { if (mobileQuery.matches) setSidebar(false); }
 
+
+        // ---- County & geological belts ----
+        // Belts come from the rock-age field of the groundwater layer, clipped to each county ahead of time (data/county_belts.js)
+        var BELT_COLORS = {
+            'Nyanza Craton (Archaean greenstone belts and granites)': '#1b9e4b',
+            'Mozambique Belt (Proterozoic basement)': '#f57c00',
+            'Karoo and Mesozoic sedimentary rocks': '#8e5bd6',
+            'Rift volcanics': '#e53935',
+            'Young sediment cover (Tertiary to Quaternary)': '#f2c744'
+        };
+        map.createPane('pane_county_select');
+        map.getPane('pane_county_select').style.zIndex = 640;
+        var countySelLayer = L.featureGroup().addTo(map);
+        var countySelect = document.getElementById('county-select');
+        var countyInfo = document.getElementById('county-info');
+        var countyHint = document.getElementById('county-hint');
+        var countyFeatures = {};
+        layer_counties_7.eachLayer(function (l) { countyFeatures[l.feature.properties.county] = l.feature; });
+        Object.keys(countyFeatures).sort().forEach(function (name) {
+            countySelect.appendChild(el('option', {value: name, text: name}));
+        });
+        function selectCounty(name) {
+            countySelLayer.clearLayers();
+            countyInfo.innerHTML = '';
+            countySelect.value = name || '';
+            countyHint.style.display = name ? 'none' : '';
+            if (!name || !countyFeatures[name]) return;
+            var belts = countyBelts[name] || [];
+            var beltLayers = belts.map(function (b) {
+                var color = BELT_COLORS[b.belt] || '#ffffff';
+                var lyr = L.geoJson(b.geometry, {pane: 'pane_county_select', style: {
+                    color: color, weight: 2.5, dashArray: '6 4', fillColor: color, fillOpacity: 0.35}});
+                lyr.bindPopup(popTable(b.belt, [['County', name], ['Share of county', b.share + '%'], ['Area', b.km2.toLocaleString() + ' km\u00b2'], ['Rock age', b.age]]));
+                lyr.addTo(countySelLayer);
+                return lyr;
+            });
+            var outline = L.geoJson(countyFeatures[name], {pane: 'pane_county_select', interactive: false, style: {
+                color: '#d4af37', weight: 4, fill: false}}).addTo(countySelLayer);
+            map.fitBounds(outline.getBounds(), {padding: [20, 20]});
+
+            countyInfo.appendChild(el('div', {class: 'cb-title', text: name + ' county'}));
+            if (!belts.length) countyInfo.appendChild(el('div', {class: 'cb-none', text: 'No mapped geological belts in this county.'}));
+            belts.forEach(function (b, i) {
+                var row = el('button', {type: 'button', class: 'cb-row', title: 'Zoom to this belt'}, [
+                    el('span', {class: 'lg-box', style: 'background:' + (BELT_COLORS[b.belt] || '#fff')}),
+                    el('span', {class: 'cb-name', text: b.belt}),
+                    el('span', {class: 'cb-pct', text: b.share + '%'})
+                ]);
+                row.addEventListener('click', function () {
+                    map.fitBounds(beltLayers[i].getBounds(), {padding: [20, 20]});
+                    beltLayers[i].eachLayer(function (l) { l.openPopup(); });
+                    closeSidebarOnMobile();
+                });
+                countyInfo.appendChild(row);
+            });
+            countyInfo.appendChild(el('button', {type: 'button', class: 'sb-btn ghost block', html: '<i class="fas fa-times"></i> Clear county'}));
+            countyInfo.lastChild.addEventListener('click', function () { selectCounty(''); });
+        }
+        countySelect.addEventListener('change', function () { selectCounty(countySelect.value); closeSidebarOnMobile(); });
+
         // ---- Search ----
         var searchIndex = [];
         function buildSearchIndex() {
@@ -3377,6 +3672,7 @@
             searchHint.textContent = list.length ? '' : emptyText;
         }
         function goToFeature(r) {
+            if (r.item && r.item.layer === layer_counties_7) { selectCounty(r.feature.feature.properties.county); return; }
             if (!map.hasLayer(r.item.layer)) {
                 setLayerVisible(r.item, true);
                 layerGroups.forEach(syncGroupSwitch);
