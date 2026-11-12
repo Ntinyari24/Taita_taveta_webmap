@@ -51,6 +51,8 @@
         }
         .sb-kicker { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
         .sb-head h1 { margin: 4px 0 0; font-size: 18px; line-height: 1.25; font-weight: 600; color: var(--gold); }
+        .sb-link { display: inline-block; margin-top: 6px; font-size: 12px; color: var(--gold-soft); text-decoration: none; }
+        .sb-link:hover { text-decoration: underline; }
         .icon-btn {
             flex: none; width: 32px; height: 32px; border-radius: 6px;
             border: 1px solid var(--line); background: var(--surface); color: var(--gold);
@@ -252,6 +254,7 @@
                 <div>
                     <div class="sb-kicker">Kenya</div>
                     <h1>Kenya Gemstones, Minerals &amp; Licences</h1>
+                    <a class="sb-link" href="drilling/"><i class="fas fa-tint"></i> Groundwater drilling sites (Taita Taveta)</a>
                 </div>
                 <button class="icon-btn" id="sb-close" type="button" title="Hide toolbox" aria-label="Hide toolbox"><i class="fas fa-times"></i></button>
             </header>
@@ -829,9 +832,9 @@
                 dashArray: '',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 2.0, 
+                weight: 1.5, 
                 fill: true,
-                fillOpacity: 1,
+                fillOpacity: 0.25,
                 fillColor: 'rgba(110,70,30,1.0)',
                 interactive: true,
             }
@@ -3330,7 +3333,7 @@
             {name: 'Boundaries', items: [
                 {name: 'Counties', layer: layer_counties_7, pane: 'pane_counties_7', icon: 'counties_7'},
                 {name: 'Kenya boundary', layer: layer_kenya_boundary_6, pane: 'pane_kenya_boundary_6', icon: 'kenya_boundary_6'},
-                {name: 'Protected areas', layer: layer_protected_areas_5, pane: 'pane_protected_areas_5', icon: 'protected_areas_5', about: 'National parks, reserves and other protected land.'}
+                {name: 'Protected areas', layer: layer_protected_areas_5, pane: 'pane_protected_areas_5', legend: boxTable([['rgba(110,70,30,0.35); border-color: rgb(110,70,30)', 'Protected area (Kenya only)']]), about: 'National parks, reserves and other protected land.'}
             ]},
             {name: 'New-law licences', items: [
                 {name: 'Dealers', layer: layer_004_New_Law_Licences_Dealers_5, pane: 'pane_004_New_Law_Licences_Dealers_5', icon: '004_New_Law_Licences_Dealers_5', about: 'Licensed mineral dealers (buying and selling points).'},
