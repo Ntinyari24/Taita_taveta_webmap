@@ -454,7 +454,7 @@
                 lineJoin: 'miter',
                 weight: 1.0, 
                 fill: true,
-                fillOpacity: 1,
+                fillOpacity: 0.35,
                 fillColor: 'rgba(183,72,75,1.0)',
                 interactive: true,
             }
@@ -517,7 +517,7 @@
                 lineJoin: 'miter',
                 weight: 1.0, 
                 fill: true,
-                fillOpacity: 1,
+                fillOpacity: 0.35,
                 fillColor: 'rgba(213,180,60,1.0)',
                 interactive: true,
             }
@@ -584,12 +584,12 @@
                 pane: 'pane_Parksexcluded_4',
                 opacity: 1,
                 color: 'rgba(136,136,136,1.0)',
-                dashArray: '',
+                dashArray: '6 4',
                 lineCap: 'butt',
                 lineJoin: 'miter',
-                weight: 1.0, 
+                weight: 1.5, 
                 fill: true,
-                fillOpacity: 1,
+                fillOpacity: 0.45,
                 fillColor: 'rgba(120,120,120,0.35294117647058826)',
                 interactive: true,
             }
@@ -985,13 +985,13 @@
                 {name: 'Ranches (OpenStreetMap, red style)', layer: layer_RanchesOpenStreetMap_0, pane: 'pane_RanchesOpenStreetMap_0', icon: 'RanchesOpenStreetMap_0'}
             ]},
             {name: 'Context', items: [
-                {name: 'Parks (left out of the search)', layer: layer_Parksexcluded_4, pane: 'pane_Parksexcluded_4', icon: 'Parksexcluded_4'},
+                {name: 'Parks (not considered for drilling)', layer: layer_Parksexcluded_4, pane: 'pane_Parksexcluded_4', icon: 'Parksexcluded_4', about: 'National parks and reserves; the model skipped these areas.'},
                 {name: 'Rivers', layer: layer_Rivers_5, pane: 'pane_Rivers_5', icon: 'Rivers_5'},
                 {name: 'Wards', layer: layer_County_6, pane: 'pane_County_6', icon: 'County_6'}
             ]},
             {name: 'Model and terrain', items: [
                 {name: 'Groundwater hotspot score', layer: layer_Hotspotscore01_3, pane: 'pane_Hotspotscore01_3', legend: hotspotLegend},
-                {name: 'Terrain', layer: layer_Terrain_2, pane: 'pane_Terrain_2', legend: ''}
+                {name: 'Terrain', layer: layer_Terrain_2, pane: 'pane_Terrain_2', legend: '', about: 'Hill shading, blended into the basemap.', blend: 'multiply', opacity: 60}
             ]}
         ];
 
@@ -1141,8 +1141,12 @@
             group.items.forEach(function (item) {
                 var sw = makeSwitch(map.hasLayer(item.layer), false, item.name);
                 item.input = sw.input;
-                var range = el('input', {type: 'range', min: '0', max: '100', value: '100', 'aria-label': item.name + ' opacity'});
-                var out = el('output', {text: '100%'});
+                // Shading rasters multiply into the basemap instead of covering it
+                if (item.blend) map.getPane(item.pane).style.mixBlendMode = item.blend;
+                var startOpacity = item.opacity || 100;
+                map.getPane(item.pane).style.opacity = startOpacity / 100;
+                var range = el('input', {type: 'range', min: '0', max: '100', value: String(startOpacity), 'aria-label': item.name + ' opacity'});
+                var out = el('output', {text: startOpacity + '%'});
                 range.addEventListener('input', function () {
                     map.getPane(item.pane).style.opacity = range.value / 100;
                     out.textContent = range.value + '%';

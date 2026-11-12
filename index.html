@@ -3358,7 +3358,7 @@
                 {name: 'Favourable rock types', layer: layer_ev_lithology_2, pane: 'pane_ev_lithology_2', legend: ramp('Less favourable', 'More favourable'), about: 'How well the local rock type suits gemstones. One of the inputs to the potential model.'},
                 {name: 'Groundwater (aquifer types)', layer: layer_querywhere13D1outFieldsoutSR4326fgeojson_0, pane: 'pane_querywhere13D1outFieldsoutSR4326fgeojson_0', legend: hydroLegend, about: 'Rock types grouped by how much groundwater a borehole is likely to yield.'},
                 {name: 'Geology (Kenya)', layer: layer_geology_kenya_1, pane: 'pane_geology_kenya_1', legend: geologyLegend, about: 'Main rock units by geological age (letters in brackets are the map codes).'},
-                {name: 'Terrain shading (Taita Taveta)', layer: layer_hillshade_0, pane: 'pane_hillshade_0', legend: '', about: 'Shaded relief that shows hills and valleys.'}
+                {name: 'Terrain shading (Taita Taveta)', layer: layer_hillshade_0, pane: 'pane_hillshade_0', legend: '', blend: 'multiply', opacity: 60, about: 'Shaded relief that shows hills and valleys.'}
             ]}
         ];
 
@@ -3443,8 +3443,12 @@
             group.items.forEach(function (item) {
                 var sw = makeSwitch(map.hasLayer(item.layer), false, item.name);
                 item.input = sw.input;
-                var range = el('input', {type: 'range', min: '0', max: '100', value: '100', 'aria-label': item.name + ' opacity'});
-                var out = el('output', {text: '100%'});
+                // Shading rasters multiply into the basemap instead of covering it
+                if (item.blend) map.getPane(item.pane).style.mixBlendMode = item.blend;
+                var startOpacity = item.opacity || 100;
+                map.getPane(item.pane).style.opacity = startOpacity / 100;
+                var range = el('input', {type: 'range', min: '0', max: '100', value: String(startOpacity), 'aria-label': item.name + ' opacity'});
+                var out = el('output', {text: startOpacity + '%'});
                 range.addEventListener('input', function () {
                     map.getPane(item.pane).style.opacity = range.value / 100;
                     out.textContent = range.value + '%';
